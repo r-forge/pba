@@ -14,4 +14,5 @@ only methods for adjustment of misclassification bias are included.
 License: GPL-3
 URL: http://pba.r-forge.r-project.org/
 BugReports: https://r-forge.r-project.org/tracker/?func=add&group_id=988&atid=3913		 
-				 
+LazyLoad: yes
+LazyData: yes				 
