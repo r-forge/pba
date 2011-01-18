@@ -1,1 +1,7 @@
-import("plyr", "ggplot2")
+useDynLib(pba, .registration = TRUE)
+
+export(expit, logit, pba, pbaBackCalculate, pbaBiasCor, pbaBiasCorCheck,
+	   pbaDistr, pbaIterate, pbaMisclassification, pbaMisclassificationCheck,
+	   pbaPlotBias, pbaPlotEstimates, pbaSummary, pbaVariable, print.pba)	
+
+import(plyr, ggplot2)
