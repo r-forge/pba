@@ -6,18 +6,22 @@
 
 ## Recreate Fox example analysis
 
+# Require packages
+require('plyr')
+require('ggplot2')
+
 # Set working directory
-directory <- "C:/Users/jthetzel/Research/sensitivity"
+directory <- "C:/Users/jthetzel/Research/pba"
 setwd(directory)
 
 # Load pba function
-source('C:/Users/jthetzel/Research/sensitivity/R/pba2.R')
+source('C:/Users/jthetzel/Research/pba/devel/pba.R')
 
 # Set seed for reproducibility
 set.seed(1234)
 
 # Read in Fox's example set
-example <- read.csv("C:/Users/jthetzel/Research/sensitivity/SAS/example.sas7bdat.csv")
+example <- read.csv("C:/Users/jthetzel/Research/pba/other/SAS/example.sas7bdat.csv")
 
 # Specify model
 glm1 <- glm(case ~ exp, data=example, family=binomial())
