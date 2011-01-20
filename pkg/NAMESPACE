@@ -4,4 +4,6 @@ export(expit, logit, pba, pbaBackCalculate, pbaBiasCor, pbaBiasCorCheck,
 	   pbaDistr, pbaIterate, pbaMisclassification, pbaMisclassificationCheck,
 	   pbaPlotBias, pbaPlotEstimates, pbaSummary, pbaVariable, print.pba)	
 
-import(plyr, ggplot2)
+import(plyr)
+import(ggplot2)
+import(QRMlib)
