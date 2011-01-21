@@ -15,16 +15,21 @@ require('QRMlib')
 # Set working directory
 directory <- "C:/Users/jthetzel/Research/pba"
 setwd(directory)
+directory <- "/home/jthetzel/Research/pba/"
+setwd(directory)
 
 # Load pba function
 source('C:/Users/jthetzel/Research/pba/devel/pba.R')
 source('C:/Users/jthetzel/Research/pba/devel/rtrapezoid.R')
+source('/home/jthetzel/Research/pba/devel/pba.R')
+source('/home/jthetzel/Research/pba/devel/rtrapezoid.R')
 
 # Set seed for reproducibility
 set.seed(1234)
 
 # Read in Fox's example set
 example <- read.csv("C:/Users/jthetzel/Research/pba/other/SAS/example.sas7bdat.csv")
+example <- read.csv("/home/jthetzel/Research/pba/other/SAS/example.sas7bdat.csv")
 
 # Specify model
 glm1 <- glm(case ~ exp, data=example, family=binomial())
@@ -60,8 +65,9 @@ pba1 <- pba(glm1, exp.non.differential, iter=1000, alpha=0.05)
 lapply(pba1$summary, exp) # Original report in Fox:
 													# Odds ratio (95% CL): 2.4 (1.2, 14)
 pbaPlotBias(pba1)
-pbaPlotBias(pba1, density=T)
+pbaPlotBias(pba1, density=F)
 pbaPlotEstimates(pba1)
+pbaPlotEstimates(pba1, variables=c(-1))
 pbaPlotEstimates(pba1, density=F)
 a <- pbaPlotEstimates(pba1, density=F, exp=T)
 a + xlim(0,5)

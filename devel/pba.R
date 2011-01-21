@@ -567,11 +567,6 @@ pbaBiasCorCheck <- function(result, pba.variables)
 	return(result)
 }
 
-# Format axis
-expFormat <- function(x)
-{
-	format(x, digits=1)
-}
 
 # Plot distribution of simulated estimates
 pbaPlotEstimates <- function(pba, density=T, exp=F, adjust=1, binwidth=NULL,
@@ -636,7 +631,7 @@ pbaPlotEstimates <- function(pba, density=T, exp=F, adjust=1, binwidth=NULL,
 	 # Transform x axis if exp
 	 if (exp)
 	 {
-		 plot <- plot + scale_x_log(name="estimate", formatter=expFormat) 
+		 plot <- plot + scale_x_log(name="estimate") 
 	 }					 					 
 						 
 	# Return plot
@@ -645,7 +640,7 @@ pbaPlotEstimates <- function(pba, density=T, exp=F, adjust=1, binwidth=NULL,
 
 # Plot sensitivities and specificities
 # Biases
-pbaPlotBias <- function(pba, density=F)
+pbaPlotBias <- function(pba, density=T)
 {
 	# Include only relevant columns
 	data <- lapply(pba$bias$tables, function(x)
