@@ -9,6 +9,7 @@
 # Require packages
 require('plyr')
 require('ggplot2')
+require('QRMlib')
 
 # Set working directory
 directory <- "C:/Users/jthetzel/Research/pba"
@@ -53,7 +54,7 @@ exp.differential <- pbaVariable(variable='exp',
 												 sp.cor = 0.8)										 
 							 
 # Perform pba analysis, non-differential
-pba1 <- pba(glm1, exp.non.differential, iter=30000, alpha=0.05)
+pba1 <- pba(glm1, exp.non.differential, iter=1000, alpha=0.05)
 lapply(pba1$summary, exp) # Original report in Fox:
 													# Odds ratio (95% CL): 2.4 (1.2, 14)
 pbaPlotBias(pba1)
@@ -63,10 +64,12 @@ pbaPlotEstimates(pba1, density=T)
 
 
 # Perform pba analysis, differential
-pba2 <- pba(glm1, exp.differential, iter=30000, alpha=0.05)
+pba2 <- pba(glm1, exp.differential, iter=300, alpha=0.05)
 lapply(pba2$summary, exp) # Original report in Fox:
 													# Odds ratio (95% CL): 3.6 (1.6, 52)
 pbaPlotBias(pba2)
+pbaPlotEstimates(pba2)
+pbaPlotEstimates(pba2, density=T)
 
 
 
@@ -96,6 +99,7 @@ pbaPlotBias(pba3)
 pbaPlotBias(pba3, density=T)
 pbaPlotEstimates(pba3)
 pbaPlotEstimates(pba3, density=T)
+pbaPlotEstimates(pba3, density=T, transform='exp')
 
 # Specify poisson model
 glm3 <- glm(case ~ exp + exp2, data=example, family=poisson())
@@ -106,7 +110,7 @@ lapply(pba4$summary, exp)
 pbaPlotBias(pba4)
 pbaPlotBias(pba4, density=T)
 pbaPlotEstimates(pba4)
-pbaPlotEstimates(pba4, density=T)
+pbaPlotEstimates(pba4, density=F)
 
 
 

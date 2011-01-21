@@ -157,3 +157,77 @@ lines(density(ourData$myData), col="red")
 # but I'm too lazy to google for it
 
 
+
+
+
+# Bootstraps
+require(boot)
+boot(example$exp, mean, 100)
+
+ratio <- function(d, w)
+	sum(d$x * w)/sum(d$u * w)
+boot(city, ratio, R=999, stype="w")
+
+require(simpleboot)
+test <- lm.boot(glm1, 1000)
+
+
+
+
+## Densities
+data <- llply(pba1$coefficients.hat.random, function(x)
+		{			
+			data.frame(value=x, quantile(x, c(0.025, 0.975)))
+		})
+
+data <- lapply(pba1$coefficients.hat.random, function(x)
+		{
+			quantiles <- t(quantile(x, c(0.025, 0.975)))
+			data.frame(value=x, quantiles)
+		})
+
+data <- ldply(pba1$coefficients.hat.random, function(x)
+		{
+			quantiles <- as.data.frame(t(quantile(x, c(0.025, 0.975))))
+			names(quantiles) <- c('lower', 'upper')
+			data.frame(value=x, quantiles)
+		})
+
+xlim <- quantile(data$value, c(0.001, 0.999))
+
+p1 <- ggplot(data, aes(x=value, y=..scaled..))
+p2 <- p1 + xlim(xlim) + facet_grid(.id~., scales='fixed')
+plot <- p2 + geom_density() + geom_vline(aes(xintercept=lower)) +
+			  geom_vline(aes(xintercept=upper))
+plot
+
+p10 <-  ggplot(data, aes(x=value, y=..scaled..))
+
+
+##
+data <- pba1$coefficients.hat.random
+data <- llply(data, function(x)
+		{
+			do.call('exp', list(x=x))
+		})
+data <- ldply(data, function(x)
+		{
+			q.low <- quantile(x, 0.01)
+			q.high <- quantile(x, 0.99)
+			result <- density(x[x > q.low & x < q.high])
+			data.frame(x=result$x, y=result$y, lower=quantile(x, 0.025), 
+					upper=quantile(x, 0.975))
+		})
+
+
+p1 <- ggplot(data, aes(x=x, y=y))
+p2 <- p1 + facet_grid(.id~., scales='free')
+p3 <- p2 + geom_line() + coord_trans(x="log")
+ribbon <- geom_ribbon(data=subset(data, x >= lower & x <= upper), 
+					aes(ymax=y), ymin=0, alpha=0.5)
+p3 + ribbon
+
+
+
+
+
