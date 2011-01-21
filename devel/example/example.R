@@ -8,6 +8,7 @@
 
 # Require packages
 require('plyr')
+require('reshape')
 require('ggplot2')
 require('QRMlib')
 
@@ -17,6 +18,7 @@ setwd(directory)
 
 # Load pba function
 source('C:/Users/jthetzel/Research/pba/devel/pba.R')
+source('C:/Users/jthetzel/Research/pba/devel/rtrapezoid.R')
 
 # Set seed for reproducibility
 set.seed(1234)
@@ -60,7 +62,11 @@ lapply(pba1$summary, exp) # Original report in Fox:
 pbaPlotBias(pba1)
 pbaPlotBias(pba1, density=T)
 pbaPlotEstimates(pba1)
-pbaPlotEstimates(pba1, density=T)
+pbaPlotEstimates(pba1, density=F)
+a <- pbaPlotEstimates(pba1, density=F, exp=T)
+a + xlim(0,5)
+pbaPlotEstimates(pba1, density=F, binwidth=0.1)
+pbaPlotEstimates(pba1, exp=T)
 
 
 # Perform pba analysis, differential
@@ -68,8 +74,12 @@ pba2 <- pba(glm1, exp.differential, iter=300, alpha=0.05)
 lapply(pba2$summary, exp) # Original report in Fox:
 													# Odds ratio (95% CL): 3.6 (1.6, 52)
 pbaPlotBias(pba2)
+pbaPlotBias(pba2, density=T)
 pbaPlotEstimates(pba2)
-pbaPlotEstimates(pba2, density=T)
+pbaPlotEstimates(pba2, adjust=0.8)
+pbaPlotEstimates(pba2, exp=T)
+pbaPlotEstimates(pba2, exp=T, adjust=0.6)
+pbaPlotEstimates(pba2, density=F)
 
 
 
@@ -98,19 +108,25 @@ lapply(pba3$summary, exp)
 pbaPlotBias(pba3)
 pbaPlotBias(pba3, density=T)
 pbaPlotEstimates(pba3)
-pbaPlotEstimates(pba3, density=T)
-pbaPlotEstimates(pba3, density=T, transform='exp')
+pbaPlotEstimates(pba3, density=F)
+pbaPlotEstimates(pba3, exp=T)
 
 # Specify poisson model
 glm3 <- glm(case ~ exp + exp2, data=example, family=poisson())
 
 # Perform bias analysis with two bias variables on poisson model
-pba4 <- pba(glm3, c(exp.differential, exp2), iter=1000, alpha=0.05)
+pba4 <- pba(glm3, c(exp.differential, exp2), iter=5000, alpha=0.05)
 lapply(pba4$summary, exp)
 pbaPlotBias(pba4)
 pbaPlotBias(pba4, density=T)
 pbaPlotEstimates(pba4)
 pbaPlotEstimates(pba4, density=F)
+pbaPlotEstimates(pba4, exp=T)
+pbaPlotEstimates(pba4, exp=T, variables=c(-1))
+
+
+# Load saved data
+
 
 
 

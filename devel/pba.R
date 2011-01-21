@@ -567,51 +567,78 @@ pbaBiasCorCheck <- function(result, pba.variables)
 	return(result)
 }
 
-
+# Format axis
+expFormat <- function(x)
+{
+	format(x, digits=1)
+}
 
 # Plot distribution of simulated estimates
-pbaPlotEstimates <- function(pba, density=T, exp=F)
+pbaPlotEstimates <- function(pba, density=T, exp=F, adjust=1, binwidth=NULL,
+											scales='free', variables=NULL)
 {
-	data <- pba$coefficients.hat.random
-
+	if (!is.null(variables))
+	{
+		data <- pba$coefficients.hat.random[variables]
+	}
+	
+	if (is.null(variables))
+	{
+		data <- pba$coefficients.hat.random
+	}
+		
+	# Apply exp() transformation
 	if (exp)
 	{
 		data <- llply(data, function(x)
 				{
-					do.call(transform, list(x=x, ...))
+					exp(x)
 				})
 	}
 	
+	# Histogram
 	if (!density)
 	{
 		data <- melt(data)
 		
-		xlim <- quantile(data$value, c(0.001, 0.999))
+		xlim <- quantile(data$value, c(0.01, 0.99)) # Trim outliers
 		p1 <- ggplot(data, aes(x=value))
-	
-		p2 <- p1 + xlim(xlim) +	facet_grid(L1~., scales='fixed')
-		plot <- p2 + geom_histogram()
+		p2 <- p1 + xlim(xlim) +	facet_grid(L1~., scales=scales)
+		plot <- p2 + geom_histogram(binwidth=binwidth)
 	}
 	
+	# Density
 	if (density)
 	{
-	  data <- ldply(data, function(x)
-									{
-										q.low <- quantile(x, 0.001)
-										q.high <- quantile(x, 0.999)
-										result <- density(x[x > q.low & x < q.high])
-										data.frame(x=result$x, y=result$y, lower=quantile(x, 0.025), 
-												upper=quantile(x, 0.975))
-									})
+		data <- ldply(data, function(x)
+			{
+				q.low <- quantile(x, 0.01) # Trim off lower outliers
+				q.high <- quantile(x, 0.99) # Trim off upper outliers
+				result <- density(x[x > q.low & x < q.high], adjust=adjust) # Density
+				lower <- as.numeric(quantile(x, 0.025))
+				upper <- as.numeric(quantile(x, 0.975))
+				data.frame(x=result$x, y=result$y, lower=lower, 
+						upper=upper)
+			})
 		
 		p1 <- ggplot(data, aes(x=x, y=y))
-		p2 <- p1 + facet_grid(.id~., scales='fixed')
-		p3 <- p2 + geom_line()
+		p2 <- p1 + geom_line()
 		ribbon <- geom_ribbon(data=subset(data, x >= lower & x <= upper), 
 				aes(ymax=y), ymin=0, alpha=0.5)
-		plot <- p3 + ribbon	
+		plot <- p2 + ribbon	
+		
+		# Scales and facets
+		plot <- plot + scale_y_continuous("density") +
+				scale_x_continuous("estimate") +
+				facet_grid(.id~., scales=scales)
 	}
 	
+	 # Transform x axis if exp
+	 if (exp)
+	 {
+		 plot <- plot + scale_x_log(name="estimate", formatter=expFormat) 
+	 }					 					 
+						 
 	# Return plot
 	return(plot)
 }
