@@ -570,11 +570,11 @@ pbaBiasCorCheck <- function(result, pba.variables)
 
 
 # Plot distribution of simulated estimates
-pbaPlotEstimates <- function(pba, density=T, transform=NULL, ...)
+pbaPlotEstimates <- function(pba, density=T, exp=F)
 {
 	data <- pba$coefficients.hat.random
 
-	if (!is.null(transform))
+	if (exp)
 	{
 		data <- llply(data, function(x)
 				{
@@ -585,7 +585,6 @@ pbaPlotEstimates <- function(pba, density=T, transform=NULL, ...)
 	if (!density)
 	{
 		data <- melt(data)
-		data$vline <- vline
 		
 		xlim <- quantile(data$value, c(0.001, 0.999))
 		p1 <- ggplot(data, aes(x=value))
