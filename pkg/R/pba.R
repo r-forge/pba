@@ -20,9 +20,9 @@ logit <- function(x)
 
 # Main function to perform PBA
 pba <- function(model,
-								pba.variables,
-								iter = 1000,
-								alpha = 0.05)
+		pba.variables,
+		iter = 1000,
+		alpha = 0.05)
 {
 	# Create a data frame of bias estimates using pbaContigency function.
 	# bias is a list of tables
@@ -51,8 +51,8 @@ pba <- function(model,
 	for (i in names(coefficients.hat))
 	{
 		coefficients.hat.random[[i]] <- coefficients.hat[[i]][,'Estimate'] + 
-																	rnorm(nrow(coefficients.hat[[i]]), 0, 1) * 
-																	coefficients.hat[[i]][,'Std. Error']
+				rnorm(nrow(coefficients.hat[[i]]), 0, 1) * 
+				coefficients.hat[[i]][,'Std. Error']
 	}
 	
 	
@@ -62,10 +62,10 @@ pba <- function(model,
 	# Create summary list of observed, bias adjusted, and bias and random
 	# error adjusted
 	summary <- pbaSummary(model=model,
-												coefficients.star=coefficients.star,
-												coefficients.hat=coefficients.hat,
-												coefficients.hat.random=coefficients.hat.random,
-												alpha=alpha)	
+			coefficients.star=coefficients.star,
+			coefficients.hat=coefficients.hat,
+			coefficients.hat.random=coefficients.hat.random,
+			alpha=alpha)	
 	
 	# Summarize estimates with random and bias error
 	estimates <- c()
@@ -130,7 +130,7 @@ pbaIterate <- function(model, bias.tables, iter)
 
 
 pbaBackCalculate <- function(a1.star, a0.star, b1.star, b0.star, 
-														 se.a, sp.a, se.b, sp.b)
+		se.a, sp.a, se.b, sp.b)
 # Function to back calculate the true number of exposed and 
 # unexposed subjects given the observed exposed, 
 # observed unexposed, sensitivity, and specificity.
@@ -183,7 +183,7 @@ pbaBackCalculate <- function(a1.star, a0.star, b1.star, b0.star,
 	
 	# Return result
 	result <- data.frame(a1.hat, a0.hat, b1.hat, b0.hat, se.a, sp.a, se.b, sp.b, 
-											 ppv.a, npv.a, ppv.b, npv.b)
+			ppv.a, npv.a, ppv.b, npv.b)
 	return(result)
 }
 
@@ -210,12 +210,12 @@ pbaVariable <- function(variable, # Character name of variable
 		se.cor=NULL, sp.cor=NULL)
 {
 	misclassification <- list(se.a.distr=se.a.distr, sp.a.distr=sp.a.distr, 
-														se.b.distr=se.b.distr, sp.b.distr=sp.b.distr, 
-														se.cor=se.cor, sp.cor=sp.cor)
-												
+			se.b.distr=se.b.distr, sp.b.distr=sp.b.distr, 
+			se.cor=se.cor, sp.cor=sp.cor)
+	
 	result <- list()
 	result[[variable[[1]]]] <- list(variable=variable, misclassification=misclassification)
-			
+	
 	return(result)	
 }
 
@@ -223,8 +223,8 @@ pbaVariable <- function(variable, # Character name of variable
 
 # Function to calculate sensitivity and specificity
 pbaMisclassification <- function(model,
-																 pba.variables,
-																 iter)
+		pba.variables,
+		iter)
 # Returns list of tables with expected counts, sensitivity, specificity,
 # positive predictive value, negative predictive value, observed odds ratio,
 # and expected odds ratio
@@ -259,22 +259,22 @@ pbaMisclassification <- function(model,
 		# Back calculate expected counts, as well as
 		# positive predicted values and negative predicted values
 		result <- pbaBackCalculate(a1.star=a1.stars, 
-														   a0.star=a0.stars, 
-															 b1.star=b1.stars,
-															 b0.star=b0.stars,
-															 se.a = correlated.tables[[i]]$se.as,
-															 sp.a = correlated.tables[[i]]$sp.as,
-															 se.b = correlated.tables[[i]]$se.bs,
-															 sp.b = correlated.tables[[i]]$sp.bs)
-													 
+				a0.star=a0.stars, 
+				b1.star=b1.stars,
+				b0.star=b0.stars,
+				se.a = correlated.tables[[i]]$se.as,
+				sp.a = correlated.tables[[i]]$sp.as,
+				se.b = correlated.tables[[i]]$se.bs,
+				sp.b = correlated.tables[[i]]$sp.bs)
+		
 		## Replace rows with counts less than 0	
 		# Identify rows with counts less than 0
 		rows <- which(apply(result[,c('a1.hat', 'a0.hat', 'b1.hat', 'b0.hat')], 1, 
-			function(x)
-			{
-				any(x < 0 | is.na(x))
-			}))
-
+						function(x)
+						{
+							any(x < 0 | is.na(x))
+						}))
+		
 		# While rows exist with counts less than 0, replace the rows
 		
 		
@@ -288,7 +288,7 @@ pbaMisclassification <- function(model,
 		results[[i]] <- result
 	}
 	bias <- list(tables=results, replaced=replaced)
-
+	
 	return(bias)
 }
 
@@ -304,7 +304,7 @@ pbaMisclassificationCheck <- function(bias, model, pba.variables)
 		while (replace)
 		{
 			invalid <- apply(bias$tables[[i]][,c('se.a', 'sp.a', 'se.b', 'sp.b', 
-								 'ppv.a', 'npv.a', 'ppv.b', 'npv.b')], 1, 
+									'ppv.a', 'npv.a', 'ppv.b', 'npv.b')], 1, 
 					function(x)
 					{
 						any(c(is.na(x), x < 0, x > 1))
@@ -343,8 +343,8 @@ pbaMisclassificationCheck <- function(bias, model, pba.variables)
 # sensitivities and specificities.
 # Adapted from JD Long: 
 # http://www.cerebralmastication.com/2010/08/stochastic-simulation-with-copulas-in-r/
-	pbaBiasCor <- function(pba.variables, iter)
-	{
+pbaBiasCor <- function(pba.variables, iter)
+{
 	# Create results list to store results
 	results <- list()
 	
@@ -362,13 +362,13 @@ pbaMisclassificationCheck <- function(bias, model, pba.variables)
 		
 		# Sample the sensitivites and specificities
 		se.as.uncor <- do.call(current.variable$misclassification$se.a.distr$distr, 
-													 current.variable$misclassification$se.a.distr$args)
+				current.variable$misclassification$se.a.distr$args)
 		sp.as.uncor <- do.call(current.variable$misclassification$sp.a.distr$distr, 
-													 current.variable$misclassification$sp.a.distr$args)									
+				current.variable$misclassification$sp.a.distr$args)									
 		se.bs.uncor <- do.call(current.variable$misclassification$se.b.distr$distr, 
-													 current.variable$misclassification$se.b.distr$args)
+				current.variable$misclassification$se.b.distr$args)
 		sp.bs.uncor <- do.call(current.variable$misclassification$sp.b.distr$distr, 
-													 current.variable$misclassification$sp.b.distr$args)
+				current.variable$misclassification$sp.b.distr$args)
 		
 		# Combine sampled uncorrelated sensitivities and specificities 
 		# into a data frame
@@ -388,7 +388,7 @@ pbaMisclassificationCheck <- function(bias, model, pba.variables)
 			(x - mean(x)) / sd(x)
 		}
 		uncorrelated.normal <- apply(uncorrelated, 2, normalize)
-
+		
 		# Specify correlation matrix
 		cor.matrix.se <- matrix(c(1, current.variable$misclassification$se.cor,
 						current.variable$misclassification$se.cor, 1),
@@ -420,8 +420,8 @@ pbaMisclassificationCheck <- function(bias, model, pba.variables)
 			for (j in 1:ncol(correlated.se)) 
 			{
 				correlated.se[,j] <- deNormalize(correlated.normal.se[,j],
-																				 normalMomentList.se[[j]][[1]],
-																				 normalMomentList.se[[j]][[2]])
+						normalMomentList.se[[j]][[1]],
+						normalMomentList.se[[j]][[2]])
 			}
 			correlated.se <- data.frame(correlated.se)
 		} else
@@ -436,8 +436,8 @@ pbaMisclassificationCheck <- function(bias, model, pba.variables)
 			for (j in 1:ncol(correlated.sp)) 
 			{
 				correlated.sp[,j] <- deNormalize(correlated.normal.sp[,j],
-																				 normalMomentList.sp[[j]][[1]],
-																				 normalMomentList.sp[[j]][[2]])
+						normalMomentList.sp[[j]][[1]],
+						normalMomentList.sp[[j]][[2]])
 			}
 			correlated.sp <- data.frame(correlated.sp)
 		} else
@@ -476,7 +476,7 @@ print.pba <- function(pba)
 # Create summary list of observed, bias adjusted, and bias and random
 # error adjusted
 pbaSummary <- function(model, coefficients.star, coefficients.hat, 
-											 coefficients.hat.random, alpha)
+		coefficients.hat.random, alpha)
 {
 	# Create summary list to store results
 	summary <- list()
@@ -523,7 +523,7 @@ pbaSummary <- function(model, coefficients.star, coefficients.hat,
 						length(x[x<0]) / length(x)
 					}))
 	summary$hat.random$p <- ifelse(summary$hat.random$p > 0.5, 
-														1 - summary$hat.random$p, summary$hat.random$p)
+			1 - summary$hat.random$p, summary$hat.random$p)
 	
 	# Return summary
 	return(summary)
@@ -548,14 +548,14 @@ pbaBiasCorCheck <- function(result, pba.variables)
 			rows.replace <- which(invalide)
 			
 			iter.replace <- length(rows.replace)
-
+			
 			if (iter.replace > 0)
 			{
 				result.replace <- pbaBiasCor(pba.variables=pba.variables[i], 
 						iter=iter.replace+1) # Add plus one as a workaround for when
-																 # iter.replace = 1.  Otherwise, NAs result
-																 # because the pbaBiasCor  needs to calculate
-																 # standard deviation.
+				# iter.replace = 1.  Otherwise, NAs result
+				# because the pbaBiasCor  needs to calculate
+				# standard deviation.
 				result[[i]][rows.replace,] <- result.replace[-(iter.replace+1),]
 			} else
 			{
@@ -570,47 +570,62 @@ pbaBiasCorCheck <- function(result, pba.variables)
 
 
 # Plot distribution of simulated estimates
-pbaPlotEstimates <- function(pba, density=T, exp=F)
+pbaPlotEstimates <- function(pba, density=T, exp=F, adjust=1, binwidth=NULL.
+scales='free')
 {
 	data <- pba$coefficients.hat.random
-
+	
+	# Apply exp() transformation
 	if (exp)
 	{
 		data <- llply(data, function(x)
 				{
-					do.call(transform, list(x=x, ...))
+					exp(x)
 				})
 	}
 	
+	# Histogram
 	if (!density)
 	{
 		data <- melt(data)
 		
-		xlim <- quantile(data$value, c(0.001, 0.999))
+		xlim <- quantile(data$value, c(0.01, 0.99)) # Trim outliers
 		p1 <- ggplot(data, aes(x=value))
-	
-		p2 <- p1 + xlim(xlim) +	facet_grid(L1~., scales='fixed')
-		plot <- p2 + geom_histogram()
+		p2 <- p1 + xlim(xlim) +	facet_grid(L1~., scales=scales)
+		plot <- p2 + geom_histogram(binwidth=binwidth)
 	}
 	
+	# Density
 	if (density)
 	{
-	  data <- ldply(data, function(x)
-									{
-										q.low <- quantile(x, 0.001)
-										q.high <- quantile(x, 0.999)
-										result <- density(x[x > q.low & x < q.high])
-										data.frame(x=result$x, y=result$y, lower=quantile(x, 0.025), 
-												upper=quantile(x, 0.975))
-									})
+		data <- ldply(data, function(x)
+				{
+					q.low <- quantile(x, 0.01) # Trim off lower outliers
+					q.high <- quantile(x, 0.99) # Trim off upper outliers
+					result <- density(x[x > q.low & x < q.high], adjust=adjust) # Density
+					lower <- as.numeric(quantile(x, 0.025))
+					upper <- as.numeric(quantile(x, 0.975))
+					data.frame(x=result$x, y=result$y, lower=lower, 
+							upper=upper)
+				})
 		
 		p1 <- ggplot(data, aes(x=x, y=y))
-		p2 <- p1 + facet_grid(.id~., scales='fixed')
-		p3 <- p2 + geom_line()
+		p2 <- p1 + geom_line()
 		ribbon <- geom_ribbon(data=subset(data, x >= lower & x <= upper), 
 				aes(ymax=y), ymin=0, alpha=0.5)
-		plot <- p3 + ribbon	
+		plot <- p2 + ribbon	
+		
+		# Scales and facets
+		plot <- plot + scale_y_continuous("density") +
+				scale_x_continuous("estimate") +
+				facet_grid(.id~., scales=scales)
 	}
+	
+	# Transform x axis if exp
+	if (exp)
+	{
+		plot <- plot + scale_x_log(formatter="scientific") 
+	}					 					 
 	
 	# Return plot
 	return(plot)
@@ -622,10 +637,10 @@ pbaPlotBias <- function(pba, density=F)
 {
 	# Include only relevant columns
 	data <- lapply(pba$bias$tables, function(x)
-	{
-		x[c('se.a', 'se.b', 'sp.a', 'sp.b')]
-	})
-
+			{
+				x[c('se.a', 'se.b', 'sp.a', 'sp.b')]
+			})
+	
 	# Melt data into long-form
 	data <- melt(data)
 	
