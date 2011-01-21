@@ -231,3 +231,32 @@ p3 + ribbon
 
 
 
+##
+# Format axis
+expFormat <- function(x)
+{
+	class(x)
+}
+
+fmtExpLg10 <- function(x) paste(round_any(10^x/1000, 0.01) , "K $", sep="")
+
+
+pbaPlotEstimates(pba1, exp=T) + scale_x_log10(formatter=expFormat)
+pbaPlotEstimates(pba1, exp=T) + scale_x_continuous(formatter=expFormat)
+pbaPlotEstimates(pba1, exp=T) + scale_x_continuous(formatter=fmtExpLg10)
+pbaPlotEstimates(pba1, exp=T) + scale_x_log()
+
+pbaPlotEstimates(pba1, exp=T) + scale_x_continuous(trans="log")
+
+breaks <- c(seq(0, 1, 0.1), seq(1, 10, 3))
+pbaPlotEstimates(pba1, exp=T) + scale_x_continuous(trans="log", breaks=breaks)
+pbaPlotEstimates(pba1, exp=T) + scale_x_continuous(breaks=breaks)
+
+
+
+
+
+
+
+
+

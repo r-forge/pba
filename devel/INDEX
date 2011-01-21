@@ -1,0 +1,14 @@
+Functions:
+=========
+
+pba                     Perform probabilistic bias analysis
+pbaDistr			    Define a probability distribution for pba object
+pbaPlotBias			    Plot summary of bias	parameters in pba object
+pbaPlotEstimates	    Plot summary of effect estimates in pba object
+
+
+Datasets:
+========
+
+LungCancerResins        Case control study of effect of resin exposure on
+						  lung cancer				    
