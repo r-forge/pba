@@ -303,7 +303,8 @@ pbaMisclassificationCheck <- function(bias, model, pba.variables)
 		replace <- T
 		while (replace)
 		{
-			invalid <- apply(bias$tables[[i]][,c('se.a', 'sp.a', 'se.b', 'sp.b', 'ppv.a', 'npv.a', 'ppv.b', 'npv.b')], 1, 
+			invalid <- apply(bias$tables[[i]][,c('se.a', 'sp.a', 'se.b', 'sp.b', 
+								 'ppv.a', 'npv.a', 'ppv.b', 'npv.b')], 1, 
 					function(x)
 					{
 						any(c(is.na(x), x < 0, x > 1))
@@ -317,7 +318,7 @@ pbaMisclassificationCheck <- function(bias, model, pba.variables)
 				# Add plus one as a workaround for when
 				# iter.replace = 1.  Otherwise, NAs result
 				# because the pbaBiasCor  needs to calculate
-				# standard deviation.
+				# standard deviation, and standard deviation of 1 is NA.
 				bias.replace <- pbaMisclassification(model=model, 
 						pba.variables=pba.variables[i], 
 						iter=iter.replace+1)
@@ -569,33 +570,46 @@ pbaBiasCorCheck <- function(result, pba.variables)
 
 
 # Plot distribution of simulated estimates
-pbaPlotEstimates <- function(pba, density=F, vline=0)
+pbaPlotEstimates <- function(pba, density=T, exp=F)
 {
-	data <- melt(pba$coefficients.hat.random)
-	data$vline <- vline
-	
-	# Set up plot
-	xlim <- quantile(data$value, c(0.001, 0.999))
-	p1 <- ggplot(data, aes(x=value))
-	
-	# Density
-	if (density)
+	data <- pba$coefficients.hat.random
+
+	if (exp)
 	{
-		p2 <- p1 + xlim(xlim) + facet_grid(L1~., scales='fixed')
-		plot <- p2 + geom_density()
+		data <- llply(data, function(x)
+				{
+					do.call(transform, list(x=x, ...))
+				})
 	}
 	
-	# Histogram
 	if (!density)
 	{
+		data <- melt(data)
+		
+		xlim <- quantile(data$value, c(0.001, 0.999))
+		p1 <- ggplot(data, aes(x=value))
+	
 		p2 <- p1 + xlim(xlim) +	facet_grid(L1~., scales='fixed')
 		plot <- p2 + geom_histogram()
 	}
 	
-	# Add lines
-	if (!is.null(vline))
+	if (density)
 	{
-		plot <- plot + geom_vline(aes(xintercept=vline))
+	  data <- ldply(data, function(x)
+									{
+										q.low <- quantile(x, 0.001)
+										q.high <- quantile(x, 0.999)
+										result <- density(x[x > q.low & x < q.high])
+										data.frame(x=result$x, y=result$y, lower=quantile(x, 0.025), 
+												upper=quantile(x, 0.975))
+									})
+		
+		p1 <- ggplot(data, aes(x=x, y=y))
+		p2 <- p1 + facet_grid(.id~., scales='fixed')
+		p3 <- p2 + geom_line()
+		ribbon <- geom_ribbon(data=subset(data, x >= lower & x <= upper), 
+				aes(ymax=y), ymin=0, alpha=0.5)
+		plot <- p3 + ribbon	
 	}
 	
 	# Return plot
@@ -630,8 +644,3 @@ pbaPlotBias <- function(pba, density=F)
 		return(p3)
 	}
 }
-
-
-	
-	
-	
