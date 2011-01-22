@@ -205,16 +205,19 @@ pbaDistr <- function(distr, args)
 
 # Function to create a define bias of a variable
 pbaVariable <- function(variable, # Character name of variable 
-		se.a.distr=NULL, sp.a.distr=NULL, 
-		se.b.distr=NULL, sp.b.distr=NULL,
-		se.cor=NULL, sp.cor=NULL)
-{
-	misclassification <- list(se.a.distr=se.a.distr, sp.a.distr=sp.a.distr, 
-			se.b.distr=se.b.distr, sp.b.distr=sp.b.distr, 
-			se.cor=se.cor, sp.cor=sp.cor)
-	
+		misclassification = list(se.a.distr=NULL, sp.a.distr=NULL, 
+				se.b.distr=NULL, sp.b.distr=NULL,
+				se.cor=NULL, sp.cor=NULL),
+		selection         = list(se.a.distr=NULL, sp.a.distr=NULL, 
+				se.b.distr=NULL, sp.b.distr=NULL,
+				se.cor=NULL, sp.cor=NULL,
+				or=NULL),
+		confounding       = list(p.a.distr=NULL, p.b=NULL, or=NULL)
+)
+{											
 	result <- list()
-	result[[variable[[1]]]] <- list(variable=variable, misclassification=misclassification)
+	result[[variable[[1]]]] <- list(variable=variable, misclassification=misclassification, selection=selection,
+			confounding=confounding)
 	
 	return(result)	
 }
@@ -568,12 +571,19 @@ pbaBiasCorCheck <- function(result, pba.variables)
 }
 
 
-
 # Plot distribution of simulated estimates
-pbaPlotEstimates <- function(pba, density=T, exp=F, adjust=1, binwidth=NULL.
-scales='free')
+pbaPlotEstimates <- function(pba, density=T, exp=F, adjust=1, binwidth=NULL,
+		scales='free', variables=NULL)
 {
-	data <- pba$coefficients.hat.random
+	if (!is.null(variables))
+	{
+		data <- pba$coefficients.hat.random[variables]
+	}
+	
+	if (is.null(variables))
+	{
+		data <- pba$coefficients.hat.random
+	}
 	
 	# Apply exp() transformation
 	if (exp)
@@ -624,7 +634,7 @@ scales='free')
 	# Transform x axis if exp
 	if (exp)
 	{
-		plot <- plot + scale_x_log(formatter="scientific") 
+		plot <- plot + scale_x_log(name="estimate") 
 	}					 					 
 	
 	# Return plot
@@ -633,7 +643,7 @@ scales='free')
 
 # Plot sensitivities and specificities
 # Biases
-pbaPlotBias <- function(pba, density=F)
+pbaPlotBias <- function(pba, density=T)
 {
 	# Include only relevant columns
 	data <- lapply(pba$bias$tables, function(x)

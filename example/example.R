@@ -112,7 +112,7 @@ exp2 <- pbaVariable(variable='exp2',
 pba3 <- pba(glm2, c(exp.non.differential, exp2), iter=1000, alpha=0.05)
 lapply(pba3$summary, exp)
 pbaPlotBias(pba3)
-pbaPlotBias(pba3, density=T)
+pbaPlotBias(pba3, density=F)
 pbaPlotEstimates(pba3)
 pbaPlotEstimates(pba3, density=F)
 pbaPlotEstimates(pba3, exp=T)
