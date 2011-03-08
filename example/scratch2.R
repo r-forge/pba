@@ -1,256 +1,176 @@
-# TODO: Add comment
-# 
-# Author: jthetzel
-###############################################################################
+head(example)
 
+# Impute values with given RR
+rr <- 4
+p.a <- .5
+p.b <- .4
 
-# example of how to use a Guassian Copula to create random draws from
-# normally distributed data
+# rr <- (a1 / (a1 + b1)) / (b1 / (b1 + b0))
+# p.a <- a1 / (a1 + a0)
+# p.b <- b1 / (b1 + b0)
 
-require("reshape")
-require("plyr")
-require("QRMlib")
-require("Matrix")
+a1=105; a0=85; b1=527; b0=93
+n <- a1 + a0 + b1 + b0
 
-#make this reproducable
-set.seed(2)
+test <- pbaBackCalculateConfounding(a1=105, a0=85, b1=527, b0=93, 
+		p1=0.80, p0=0.05, rr=0.63, rd=NULL)
 
-#how many draws in our starting data set?
-n <- 1e4
+test <- pbaConfounding(a1=105, a0=85, b1=527, b0=93, 
+		p1=0.80, p0=0.05, rr=0.63, rd=NULL)
 
-# how many draws do we want from this distribution?
-drawCount <- 1e4
+test.rd <- pbaConfounding(a1=105, a0=85, b1=527, b0=93, 
+		p1=0.80, p0=0.05, rr=NULL, rd= -0.37)
 
-# ourData will be my starting data which we'll
-# base our model on
-myData <- rnorm(n, 5, .6)
-yourData <- myData + rnorm(n, 8, .25)
-hisData <- myData + rnorm(n, 6, .4)
-herData <- hisData + rnorm(n, 8, .35)
+p1 <- 0.80
+p0 <- 0.05
+rd <- -.037
+t11 <- (a1 + b1) * p1
+t01 <- (a0 + b0) * p0
+t10 <- (a1 + b1) - t11
+t00 <- (a0 + b0) - t10
+t1  <- a1 + b1
+t0  <- a0 + b0
 
-myData <- rnorm(n, 5, .6)
-yourData <- myData + rnorm(n, 8, .25)
-hisData <- myData + rnorm(n, 6, .4)
-herData <- hisData + rnorm(n, 8, .35)
+a11 <- ((rd * t1 * (t1 - t11)) + (a1 * t11)) / t1
+a01 <- ((rd * t0 * (t0 - t01)) + (a0 * t01)) / t0
 
-ourData <- data.frame(myData, yourData, hisData, herData)
+RD <- -0.37
+m <- 632
+M1 <- 505.6
+a <- 105
 
-# now we have raw correlations in the 70s, 80s, and 90s. Funny how that
-# works out
-cor(ourData)
-
-#set up some simple functions for normalizing (Z Score) and
-#denormalizing
-normalMoments <- function(t) {
-	as.list(c(mean=mean(t), sd=sd(t)))
-}
-
-normalize <- function(x) {
-	(x - mean(x)) / sd(x)
-}
-
-deNormalize <- function(x, sampleMean, sampleSd) {
-	(x * sampleSd + sampleMean)
-}
-
-
-# create an object with the mean and sd of each
-# of the margins... you can do this without plyr
-# using apply() if you're into that sort of thing
-# but alply makes it so easy to work with the results
-# we will use these later to denormalize
-normalMomentList <- alply(ourData, 2, normalMoments)
-
-# normalize i.e. create Z score
-# I think you don't HAVE to do this with gaussian marginals,
-# but you DO with non-gaussian... so I'm in the habit.
-ourDataZ <- data.frame(apply(ourData, 2, normalize))
-
-# now ourDataZ is a data frame of Z scores.
-# prove this to yourself by checking the
-# mean and SD of each margin
-
-apply(ourDataZ, 2, mean)
-apply(ourDataZ, 2, sd)
-
-#looks like mean of 0 and sd of 1 to me
-
-# this fixes positive def, fits a copula, and makes draws
-# in one line of code. Try that in Excel, bitches.
-myDraws <- rcopula.gauss(n=drawCount,
-		Sigma=as.matrix(nearPD(Spearman(ourDataZ),corr=TRUE)$mat),
-		d=ncol(ourData))
-
-# rcopula.gauss spits out points from 0-1 (i.e. q values) so we need to turn those into
-# Z scores by doing a little norm inversion.
-myDraws <- qnorm(myDraws)
-
-#check the mean and sd
-apply(myDraws, 2, mean)
-apply(myDraws, 2, sd)
-
-#should be 0, 1... and they are close..
-
-# but we can do better than that... we know statistics!
-# let's do a Kolmogorov-Smirnov test to see if these
-# samples come from the same distribution
-# KS does not check correlation,
-# it only tests if two sets of samples
-# came from same dist.. we'll check each column
-
-for (i in 1:ncol(ourData)){
-	print(ks.test(myDraws[[i]], ourDataZ[[i]]))
-}
-
-# if the p-value of the KS test is < .05 then we
-# reject that the distributions are equal
-# they all look > .05 to me.
-# Kolmogorov-Smirnov makes me want to drink, for some odd reason
-# If your starting sample is small, you'll notice that a couple of the variables
-# fail or just barely pass the KS test. This is common because KS is non-parametric and
-# the starting sample will be 'lumpy' and not that big. If starting n gets up
-# to, say, 10K, then they all do better. That's why I started with 10K and still
-# it can be hit or miss
-
-# so we have a metric shit ton of random draws. But they are Z scores
-# and we want them put back in their original shapes. So let's do that:
-
-myDrawsDenorm <- myDraws
-for (i in 1:ncol(myDrawsDenorm)) {
-	myDrawsDenorm[,i] <- deNormalize(myDraws[,i],
-			normalMomentList[[i]][[1]],
-			normalMomentList[[i]][[2]])
-}
-
-myDrawsDenorm <- data.frame(myDrawsDenorm)
-names(myDrawsDenorm) <- names(ourData)
-
-#let's look at the mean and standard dev of the starting data
-apply(ourData, 2, mean)
-apply(ourData, 2, sd)
-
-#compare that with our sample data
-apply(myDrawsDenorm, 2, mean)
-apply(myDrawsDenorm, 2, sd)
-
-
-# so myDrawsDenorm contains the final draws
-# let's check Kolmogorov-Smirnov between the starting data
-# and the final draws
-
-for (i in 1:ncol(ourData)){
-	print(ks.test(myDrawsDenorm[[i]], ourData[[i]]))
-}
-
-# holy shit. it works!
-
-#look at the correlation matrices
-cor(myDrawsDenorm)
-cor(ourData)
-
-#it's fun to plot the variables and see if the PDFs line up
-#you could do this for each variable. It's a good sanity check.
-plot(density(myDrawsDenorm$myData))
-lines(density(ourData$myData), col="red")
-
-# there's a test to see if the corr matricices are the same
-# but I'm too lazy to google for it
+A1 <- (RD * m * (m - M1) + (a * M1)) / m
 
 
 
 
 
-# Bootstraps
-require(boot)
-boot(example$exp, mean, 100)
-
-ratio <- function(d, w)
-	sum(d$x * w)/sum(d$u * w)
-boot(city, ratio, R=999, stype="w")
-
-require(simpleboot)
-test <- lm.boot(glm1, 1000)
-
-
-
-
-## Densities
-data <- llply(pba1$coefficients.hat.random, function(x)
-		{			
-			data.frame(value=x, quantile(x, c(0.025, 0.975)))
-		})
-
-data <- lapply(pba1$coefficients.hat.random, function(x)
-		{
-			quantiles <- t(quantile(x, c(0.025, 0.975)))
-			data.frame(value=x, quantiles)
-		})
-
-data <- ldply(pba1$coefficients.hat.random, function(x)
-		{
-			quantiles <- as.data.frame(t(quantile(x, c(0.025, 0.975))))
-			names(quantiles) <- c('lower', 'upper')
-			data.frame(value=x, quantiles)
-		})
-
-xlim <- quantile(data$value, c(0.001, 0.999))
-
-p1 <- ggplot(data, aes(x=value, y=..scaled..))
-p2 <- p1 + xlim(xlim) + facet_grid(.id~., scales='fixed')
-plot <- p2 + geom_density() + geom_vline(aes(xintercept=lower)) +
-			  geom_vline(aes(xintercept=upper))
-plot
-
-p10 <-  ggplot(data, aes(x=value, y=..scaled..))
-
-
-##
-data <- pba1$coefficients.hat.random
-data <- llply(data, function(x)
-		{
-			do.call('exp', list(x=x))
-		})
-data <- ldply(data, function(x)
-		{
-			q.low <- quantile(x, 0.01)
-			q.high <- quantile(x, 0.99)
-			result <- density(x[x > q.low & x < q.high])
-			data.frame(x=result$x, y=result$y, lower=quantile(x, 0.025), 
-					upper=quantile(x, 0.975))
-		})
-
-
-p1 <- ggplot(data, aes(x=x, y=y))
-p2 <- p1 + facet_grid(.id~., scales='free')
-p3 <- p2 + geom_line() + coord_trans(x="log")
-ribbon <- geom_ribbon(data=subset(data, x >= lower & x <= upper), 
-					aes(ymax=y), ymin=0, alpha=0.5)
-p3 + ribbon
 
 
 
 
 
-##
-# Format axis
-expFormat <- function(x)
+
+
+
+
+
+
+
+
+# Specify bias variable, differential
+exp.test <- pbaVariable(variable='exp',
+		misclassification = list( 
+				se.a.distr = pbaDistr('rtrapezoid', args=list(min=0.75, 
+								mode1=0.85, mode2=0.95, max=1.50)), 
+				sp.a.distr = pbaDistr('rtrapezoid', args=list(min=0.75, 
+								mode1=0.85, mode2=0.95, max=1.00)),
+				se.b.distr = pbaDistr('rtrapezoid', args=list(min=0.70, 
+								mode1=0.80, mode2=0.90, max=0.95)),
+				sp.b.distr = pbaDistr('rtrapezoid', args=list(min=0.70, 
+								mode1=0.80, mode2=0.90, max=0.95)),
+				se.cor = 0.8,
+				sp.cor = 0.8
+		),
+		confounding = list(
+			smoking = list(
+				p1.distr = pbaDistr('rtrapezoid', args=list(min=0.75, 
+								mode1=0.85, mode2=0.95, max=1.00)),
+				p0.distr = pbaDistr('rtrapezoid', args=list(min=0.75, 
+								mode1=0.85, mode2=0.95, max=1.00)),
+				rr.distr = pbaDistr('rtrapezoid', args=list(min=2.5, 
+								mode1=3.0, mode2=3.5, max=4.0)),
+				name = 'smoking'
+			), 
+			htn = list(
+				p1.distr = pbaDistr('rtrapezoid', args=list(min=0.75, 
+								mode1=0.85, mode2=0.95, max=1.00)),
+				p0.distr = pbaDistr('rtrapezoid', args=list(min=0.75, 
+								mode1=0.85, mode2=0.95, max=1.00)),
+				rr.distr = pbaDistr('rtrapezoid', args=list(min=2.5, 
+								mode1=3.0, mode2=3.5, max=4.0)),
+				name = 'hypertension'
+			)
+		)
+)
+
+
+test <- pbaSampleConfounding(exp.test$exp$confounding, 100)
+names(test)
+plot(density(test$smoking$p1))
+max(test$smoking$p1)
+
+pbaSampleMisclassification(exp.test$exp$misclassification, 100)
+
+tables <- pbaBiasTables(exp.test, 100)
+
+tables2 <- pbaCalculatePredictiveValues(tables, glm1, 100)
+
+tables3 <- pbaCorrectMisclassification(tables2, exp.test, glm1, 100)
+
+
+
+
+
+
+data <- glm1$model
+data$smoking <- rbinom(nrow(data), 1, .5)
+glm9 <- update(glm1, data = data, formula = '. ~ . + smoking')
+
+
+
+
+
+
+#
+pbaIterateMisclassification <- function(exposure, data, misclassification, 
+		iter)
 {
-	class(x)
+	
+	# Find rows for a1s, a0s, b1s, and b0s
+	rows.a1 <- which(data[,1]==1 & data[,exposure]==1)
+	rows.a0 <- which(data[,1]==1 & data[,exposure]==0)
+	rows.b1 <- which(data[,1]==0 & data[,exposure]==1)
+	rows.b0 <- which(data[,1]==0 & data[,exposure]==0)
+	
+	# Calculate a1., a0., b1., and b0.
+	a1. <- length(rows.a1)
+	a0. <- length(rows.a0)
+	b1. <- length(rows.b1)
+	b0. <- length(rows.b0)
+	n1. <- a1. + b1.
+	n0. <- a0. + b0.
+	
+	# Calculate n11, n01, n10, and n00
+	n11 <- n1. * p1
+	n01 <- n0. * p0
+	n10 <- n1. - n11
+	n00 <- n0. - n01
+	
+	# Calculate a11 and a01
+	a11 <- (rr * n11 * a1.) / ((rr * n11) + n1. - n11)
+	a01 <- (rr * n01 * a0.) / ((rr * n01) + n0. - n01)
+	
+	
+	# Simulate occurence of correct classification for a1s, a0s, b1s, and b0s
+	correct.a1 <- rbinom(length(rows.a1), 1, misclassification$ppv.a[i])
+	correct.a0 <- rbinom(length(rows.a0), 1, misclassification$npv.a[i])
+	correct.b1 <- rbinom(length(rows.b1), 1, misclassification$ppv.b[i])
+	correct.b0 <- rbinom(length(rows.b0), 1, misclassification$npv.b[i])
+	
+	# Change exposure if classification not correct
+	data[rows.a1,exposure][correct.a1==0] <- 
+			as.numeric(!data[rows.a1,exposure][correct.a1==0])
+	data[rows.a0,exposure][correct.a0==0] <- 
+			as.numeric(!data[rows.a0,exposure][correct.a0==0])
+	data[rows.b1,exposure][correct.b1==0] <- 
+			as.numeric(!data[rows.b1,exposure][correct.b1==0])
+	data[rows.b0,exposure][correct.b0==0] <- 
+			as.numeric(!data[rows.b0,exposure][correct.b0==0])
+	
+	return(data)
 }
 
-fmtExpLg10 <- function(x) paste(round_any(10^x/1000, 0.01) , "K $", sep="")
-
-
-pbaPlotEstimates(pba1, exp=T) + scale_x_log10(formatter=expFormat)
-pbaPlotEstimates(pba1, exp=T) + scale_x_continuous(formatter=expFormat)
-pbaPlotEstimates(pba1, exp=T) + scale_x_continuous(formatter=fmtExpLg10)
-pbaPlotEstimates(pba1, exp=T) + scale_x_log()
-
-pbaPlotEstimates(pba1, exp=T) + scale_x_continuous(trans="log")
-
-breaks <- c(seq(0, 1, 0.1), seq(1, 10, 3))
-pbaPlotEstimates(pba1, exp=T) + scale_x_continuous(trans="log", breaks=breaks)
-pbaPlotEstimates(pba1, exp=T) + scale_x_continuous(breaks=breaks)
 
 
 
@@ -258,5 +178,141 @@ pbaPlotEstimates(pba1, exp=T) + scale_x_continuous(breaks=breaks)
 
 
 
+
+#########
+#########
+#########
+
+# Specify bias variable, differential
+exp.test <- pbaVariable(variable='exp',
+		misclassification = list( 
+				se.a.distr = pbaDistr('rtrapezoid', args=list(min=0.75, 
+								mode1=0.85, mode2=0.95, max=1.50)), 
+				sp.a.distr = pbaDistr('rtrapezoid', args=list(min=0.75, 
+								mode1=0.85, mode2=0.95, max=1.00)),
+				se.b.distr = pbaDistr('rtrapezoid', args=list(min=0.70, 
+								mode1=0.80, mode2=0.90, max=0.95)),
+				sp.b.distr = pbaDistr('rtrapezoid', args=list(min=0.70, 
+								mode1=0.80, mode2=0.90, max=0.95)),
+				se.cor = 0.8,
+				sp.cor = 0.8
+		),
+		confounding = list(
+				smoking = list(
+						p1.distr = pbaDistr('rtrapezoid', args=list(min=0.75, 
+										mode1=0.85, mode2=0.95, max=1.00)),
+						p0.distr = pbaDistr('rtrapezoid', args=list(min=0.75, 
+										mode1=0.85, mode2=0.95, max=1.00)),
+						rr.distr = pbaDistr('rtrapezoid', args=list(min=2.5, 
+										mode1=3.0, mode2=3.5, max=4.0)),
+						name = 'smoking'
+				), 
+				htn = list(
+						p1.distr = pbaDistr('rtrapezoid', args=list(min=0.75, 
+										mode1=0.85, mode2=0.95, max=1.00)),
+						p0.distr = pbaDistr('rtrapezoid', args=list(min=0.75, 
+										mode1=0.85, mode2=0.95, max=1.00)),
+						rr.distr = pbaDistr('rtrapezoid', args=list(min=2.5, 
+										mode1=3.0, mode2=3.5, max=4.0)),
+						name = 'hypertension'
+				)
+		)
+)
+
+model <- glm1
+pbaVariables <- exp.test
+iter <- 1
+
+# Sample bias parameters
+bias.tables <- pbaBiasTables(pbaVariables, iter = iter)
+bias.tables$exp$misclassification
+bias.tables
+
+# Calculate predictive values for misclassification biases
+bias.tables <- pbaCalculatePredictiveValues(bias.tables = bias.tables,
+		model = model, iter = iter)
+bias.tables
+bias.tables$exp$misclassification
+
+# Correct unrealistic misclassification values
+bias.tables <- pbaCorrectMisclassification(bias.tables = bias.tables,
+		pbaVariables = pbaVariables, model = model, iter = iter)
+bias.tables$exp$misclassification
+
+i <- pbaVariables$exp
+
+misclassification <- pbaSampleMisclassification(
+		misclassification = i$misclassification, iter = 1)
+
+# Asdjust data for misclassification bias
+data.adjusted <- pbaIterateMisclassification(model = model, 
+		bias.tables = bias.tables, iter = 1)[[1]]
+
+# Confounding
+exposure <- 'exp'
+outcome <- 'case'
+model <- glm1
+name <- 'htn'
+confounding <- bias.tables$exp$confounding$hypertension
+model.updated <- pbaIterateConfoundingSingle(exposure = exposure, 
+		outcome = outcome, model = model,	confounding = confounding, name = name, 
+		iter = 1)[[1]]
+model.updated$formula
+
+
+models.updated <- pbaIterateConfounding(model = model, 
+		bias.tables = bias.tables, iter = 1)[[1]]
+models.updated$formula
+head(model.updated$data)
+
+# pba2
+test <- pba2(model = glm2, pba.variables = exp.test, iter = 100)
+
+
+
+
+
+
+bt <- pbaBiasTables(c(exp.test, exp.test2), iter=1)
+
+
+
+
+a <- pba3$bias.lists
+bias.lists <- a
+b <- pbaBiasListsTables(pba3$bias.lists)
+
+
+confounding <- ldply(bias.lists[['exp']], function(x)
+		{
+			ldply(x$confounding, function(y)
+					{
+						y
+					})
+		})
+
+confounding <- split(confounding, f = confounding$.id)
+
+
+
+
+
+pba1$model.summaries[[2]]
+
+
+
+a <- pbaPlotBiasConfounding(pba1)
+b <- pbaPlotBiasConfounding(pba3)
+
+vp1 <- viewport(width = 1, height = 2/3, x = 1/2, y = 4/6)
+vp2 <- viewport(width = 1, height = 1/3, x = 1/2, y = 1/6)
+print(b[[1]], vp = vp1)
+print(b[[2]], vp = vp2)
+
+p1 <- pbaPlotBias(pba3)
+pbaPlotEstimates(pba3)
+print(p1$plots[[1]], vp = p1$vps[[1]])
+print(p1$plots[[2]], vp = p1$vps[[2]])
+print(p1$plots[[3]], vp = p1$vps[[3]])
 
 

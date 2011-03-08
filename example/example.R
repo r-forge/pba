@@ -19,10 +19,10 @@ directory <- "/home/jthetzel/Research/pba/"
 setwd(directory)
 
 # Load pba function
-source('C:/Users/jthetzel/Research/pba/devel/pba.R')
-source('C:/Users/jthetzel/Research/pba/devel/rtrapezoid.R')
-source('/home/jthetzel/Research/pba/devel/pba.R')
-source('/home/jthetzel/Research/pba/devel/rtrapezoid.R')
+source('C:/Users/jthetzel/Research/pba/pkg/R/pba.R')
+source('C:/Users/jthetzel/Research/pba/pkg/R/rtrapezoid.R')
+source('/home/jthetzel/Research/pba/pkg/R/pba.R')
+source('/home/jthetzel/Research/pba/pkg/R/rtrapezoid.R')
 
 # Set seed for reproducibility
 set.seed(1234)
@@ -35,7 +35,8 @@ example <- read.csv("/home/jthetzel/Research/pba/other/SAS/example.sas7bdat.csv"
 glm1 <- glm(case ~ exp, data=example, family=binomial())
 
 # Specify bias variable, non-differential
-exp.non.differential <- pbaVariable(variable='exp', 
+exp.non.differential <- pbaVariable(variable='exp',
+												 misclassification = list(
 												 se.a.distr = pbaDistr('rtrapezoid', args=list(min=0.75, 
 												 							mode1=0.85, mode2=0.95, max=1.00)), 
 												 sp.a.distr = pbaDistr('rtrapezoid', args=list(min=0.75, 
@@ -45,10 +46,11 @@ exp.non.differential <- pbaVariable(variable='exp',
 												 sp.b.distr = pbaDistr('rtrapezoid', args=list(min=0.75, 
 																			mode1=0.85, mode2=0.95, max=1.00)),
 												 se.cor = 1,
-												 sp.cor = 1)
+												 sp.cor = 1))
 
 # Specify bias variable, differential
-exp.differential <- pbaVariable(variable='exp', 
+exp.differential <- pbaVariable(variable='exp',
+												 misclassification = list( 
 												 se.a.distr = pbaDistr('rtrapezoid', args=list(min=0.75, 
 																 mode1=0.85, mode2=0.95, max=1.00)), 
 												 sp.a.distr = pbaDistr('rtrapezoid', args=list(min=0.75, 
@@ -58,13 +60,13 @@ exp.differential <- pbaVariable(variable='exp',
 												 sp.b.distr = pbaDistr('rtrapezoid', args=list(min=0.70, 
 																 mode1=0.80, mode2=0.90, max=0.95)),
 												 se.cor = 0.8,
-												 sp.cor = 0.8)										 
+												 sp.cor = 0.8))										 
 							 
 # Perform pba analysis, non-differential
-pba1 <- pba(glm1, exp.non.differential, iter=1000, alpha=0.05)
-lapply(pba1$summary, exp) # Original report in Fox:
+pba1 <- pba(glm1, exp.non.differential, iter=100, alpha=0.05)
+lapply(pbaSummary(pba1), exp) # Original report in Fox:
 													# Odds ratio (95% CL): 2.4 (1.2, 14)
-pbaPlotBias(pba1)
+pbaPlotBiasMisclassification(pba1)
 pbaPlotBias(pba1, density=F)
 pbaPlotEstimates(pba1)
 pbaPlotEstimates(pba1, variables=c(-1))
@@ -100,16 +102,18 @@ glm2 <- glm(case ~ exp + exp2, data=example, family=binomial())
 
 # Specify second bias variable
 exp2 <- pbaVariable(variable='exp2', 
-		se.a.distr = pbaDistr('rnorm', args=list(mean=0.8, sd=0.05)),
-		sp.a.distr = pbaDistr('rnorm', args=list(mean=0.9, sd=0.05)),
-		se.b.distr = pbaDistr('rnorm', args=list(mean=0.8, sd=0.05)),
-		sp.b.distr = pbaDistr('rnorm', args=list(mean=0.9, sd=0.05)),
-		se.cor = 0.8,
-		sp.cor = 0.9)
+		misclassification = list(
+			se.a.distr = pbaDistr('rnorm', args=list(mean=0.8, sd=0.05)),
+			sp.a.distr = pbaDistr('rnorm', args=list(mean=0.9, sd=0.05)),
+			se.b.distr = pbaDistr('rnorm', args=list(mean=0.8, sd=0.05)),
+			sp.b.distr = pbaDistr('rnorm', args=list(mean=0.9, sd=0.05)),
+			se.cor = 0.8,
+			sp.cor = 0.9)
+)
 
 
 # Perform bias analysis with two bias variables
-pba3 <- pba(glm2, c(exp.non.differential, exp2), iter=1000, alpha=0.05)
+pba3 <- pba(glm2, c(exp.non.differential, exp2), iter=100, alpha=0.05)
 lapply(pba3$summary, exp)
 pbaPlotBias(pba3)
 pbaPlotBias(pba3, density=F)
@@ -121,7 +125,7 @@ pbaPlotEstimates(pba3, exp=T)
 glm3 <- glm(case ~ exp + exp2, data=example, family=poisson())
 
 # Perform bias analysis with two bias variables on poisson model
-pba4 <- pba(glm3, c(exp.differential, exp2), iter=5000, alpha=0.05)
+pba4 <- pba(glm3, c(exp.differential, exp2), iter=1000, alpha=0.05)
 lapply(pba4$summary, exp)
 pbaPlotBias(pba4)
 pbaPlotBias(pba4, density=T)
