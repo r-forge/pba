@@ -96,7 +96,7 @@ pba2 <- function(model,
 	
 	# Correct unrealistic misclassification values
 	bias.tables <- pbaCorrectMisclassification(bias.tables = bias.tables,
-			pbaVariables = pbaVariables, iter = iter)
+			pba.variables = pba.variables, iter = iter)
 	
 	# Predict unbiased dataset by iterating through data frame of bias estimates.
 	# model.summaries is a list of model summaries
@@ -403,6 +403,13 @@ pbaDistr <- function(distr, args)
 # Sample misclassification parameters
 pbaSampleMisclassification <- function(misclassification, iter)
 {
+	# Function will return NAs if iter == 1, I think do to the way
+	# the correlations are imposed.  As a temporary fix, if iter ==
+	# 1, then iter is changed to 2, and later on the first row of the 
+	# result is returned.
+	iter.equaled.one <- ifelse(iter == 1, T, F)
+	iter <- ifelse(iter == 1, 2, iter)
+	
 	# Create results list to store results
 	results <- list()
 	
@@ -497,7 +504,14 @@ pbaSampleMisclassification <- function(misclassification, iter)
 	
 	result <- data.frame(correlated.se, correlated.sp)
 	
-	# Return results list
+	# If iter originally equaled 1, then only return first row.
+  # A second row was added to avoid the returning of NAs
+	if (iter.equaled.one)
+	{
+		result <- result[1,]
+	}
+
+	# Return results data frame
 	return(result)	
 }
 
@@ -855,10 +869,10 @@ pbaBiasCor <- function(pba.variables, iter)
 }
 
 
-# Method to print pbaVariables object
-#print.pbaVariables <- function(pba.variables)
+# Method to print pba.variables object
+#print.pba.variables <- function(pba.variables)
 #{
-#	print(paste('pbaVariables object for variable', variable, sep=''))
+#	print(paste('pba.variables object for variable', variable, sep=''))
 #	print(paste('Sensitivity of '))
 #	
 #}
@@ -1082,12 +1096,12 @@ pbaAddIter <- function(x, iter)
 
 
 
-# Funciton to generate bias tables from pbaVariables
-pbaBiasTables <- function(pbaVariables, iter)
+# Funciton to generate bias tables from pba.variables
+pbaBiasTables <- function(pba.variables, iter)
 {
 	results <- list()
 	
-	for (i in pbaVariables)
+	for (i in pba.variables)
 	{
 		misclassification <- pbaSampleMisclassification(
 			misclassification = i$misclassification, iter = iter)
@@ -1171,9 +1185,9 @@ pbaCorrectConfounding <- function(p, distr, args)
 }
 
 # Remove and resample if misclassification
-pbaCorrectMisclassification <- function(bias.tables, pbaVariables, model, iter)
+pbaCorrectMisclassification <- function(bias.tables, pba.variables, model, iter)
 {
-	for (i in names(pbaVariables))
+	for (i in names(pba.variables))
 	{
 		# Find rows needing replacement
 		rows <- which(bias.tables[[i]]$misclassification$a1.hat < 0 |	
@@ -1202,7 +1216,7 @@ pbaCorrectMisclassification <- function(bias.tables, pbaVariables, model, iter)
 			# Resample sensitivities and specificities for rows needing replacement
 			bias.tables[[i]]$misclassification[rows,c('se.a','se.b','sp.a','sp.b')] <- 
 					pbaSampleMisclassification(
-					misclassification = pbaVariables[[i]]$misclassification,
+					misclassification = pba.variables[[i]]$misclassification,
 					iter = length(rows))
 	
 			# Calculate predictive values of replaced rows
