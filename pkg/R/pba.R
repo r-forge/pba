@@ -80,6 +80,71 @@ pba <- function(model,
 }
 
 
+# Main function to perform PBA
+pba2 <- function(model,
+		pba.variables,
+		iter = 1000,
+		alpha = 0.05)
+{
+	# Create a data frame of bias estimates using pbaContigency function.
+	# bias is a list of tables
+	bias.tables <- pbaBiasTables(pba.variables, iter)
+	
+	# Calculate predictive values for misclassification biases
+	bias.tables <- pbaCalculatePredictiveValues(bias.tables = bias.tables,
+			model = model, iter = iter)
+	
+	# Correct unrealistic misclassification values
+	bias.tables <- pbaCorrectMisclassification(bias.tables = bias.tables,
+			pbaVariables = pbaVariables, iter = iter)
+	
+	# Predict unbiased dataset by iterating through data frame of bias estimates.
+	# model.summaries is a list of model summaries
+	model.summaries <- pbaIterate(model, bias$tables, iter)
+	
+	# Collect all parameter estimates from predicted model summaries
+	coefficients.hat <- list()
+	for (i in rownames(model.summaries[[1]]$coefficients))
+	{
+		coefficients.hat[[i]] <- t(sapply(model.summaries, function(x)
+						{
+							x$coefficients[i,]	
+						}))
+	}
+	
+	# Ajust expected coefficient estimates for random error
+	coefficients.hat.random <- list()
+	for (i in names(coefficients.hat))
+	{
+		coefficients.hat.random[[i]] <- coefficients.hat[[i]][,'Estimate'] + 
+				rnorm(nrow(coefficients.hat[[i]]), 0, 1) * 
+				coefficients.hat[[i]][,'Std. Error']
+	}
+	
+	
+	# Coefficients from original model
+	coefficients.star <- summary(model)$coefficients
+	
+	# Create summary list of observed, bias adjusted, and bias and random
+	# error adjusted
+	summary <- pbaSummary(model=model,
+			coefficients.star=coefficients.star,
+			coefficients.hat=coefficients.hat,
+			coefficients.hat.random=coefficients.hat.random,
+			alpha=alpha)	
+	
+	# Summarize estimates with random and bias error
+	estimates <- c()
+	result <- list(bias=bias,
+			coefficients.star=coefficients.star,
+			coefficients.hat=coefficients.hat,
+			coefficients.hat.random=coefficients.hat.random,
+			summary=summary)
+	class(result) <- c('pba', 'list')
+	return(result)
+	
+}
+
 # Simulate classification of model data by Bernoulli trials
 pbaIterate <- function(model, bias.tables, iter)
 {
@@ -129,6 +194,136 @@ pbaIterate <- function(model, bias.tables, iter)
 }
 
 
+# Simulate classification of model data by Bernoulli trials
+pbaIterate2 <- function(model, bias.tables, iter)
+{
+	# Create list to store glm summaries
+	summaries <- list()
+	
+	# Store formula, incase it needs to be updated for additional unmeasured
+	# confounders
+	formula <- model$formula
+	
+	# Iterations
+	for (i in 1:iter)
+	{
+		# Create copy of model data to use during iterations
+		data <- model$model
+		
+		# Iterate through bias tables
+		for (j in names(bias.tables))
+		{
+			# Assign current table
+			current.table <- bias.tables[[j]]
+			
+			# Misclassification
+			data <- pbaIterateMisclassification(exposure = j, model = model, 
+					misclassification = current.table$misclassification, data = data,
+					iter = iter)
+			
+			# Confouding
+			for (k in names(current.table$confounding))
+			{
+				data <- pbaIterateConfounding(exposure = j, data = data,
+						confounding = current.table$confounding[[k]],
+						name = k, iter = iter)
+				formula <- paste(formula, " + ", current.table$confounding[[k]]$name)			
+			}
+			
+		}
+			
+			
+		
+		# Update model
+		#! need to update call with additional confounders
+		model.new <- update(model, data = data, formula = formula)
+		
+		# Save model summary
+		summaries[[i]] <- summary(model.new)
+	}
+	
+	return(summaries)
+	
+}
+
+
+#
+pbaIterateConfounding <- function(exposure, data, confounding, name, iter)
+{
+	# Find rows for a1s, a0s, b1s, and b0s
+	rows.a1 <- which(data[,1]==1 & data[,exposure]==1)
+	rows.a0 <- which(data[,1]==1 & data[,exposure]==0)
+	rows.b1 <- which(data[,1]==0 & data[,exposure]==1)
+	rows.b0 <- which(data[,1]==0 & data[,exposure]==0)
+	
+	# Calculate a1., a0., b1., b0.
+	a1. <- length(rows.a1)
+	a0. <- length(rows.a0)
+	b1. <- length(rows.b1)
+	b0. <- length(rows.b0)
+	
+	# Calculate expected confounding
+	expected <- pbaBackCalculateCounfounding(a1. = a1., a0. = 0., b1. = b1., 
+			b0. = b0., p1 = confounding$p1[i], p0 = confounding$p0[i], 
+			rr = confounding$rr[i], rd = confounding$rd[i])
+	
+	# Calculate probabilities of confounding
+	prob.a1. <- expected$a11 / a1.
+	prob.a0. <- expected$a01 / a0.
+	prob.b1. <- expected$b11 / b1.
+	prob.b0. <- expected$b01 / b0.
+	
+	# Simulate occurence of correct classification for a1s, a0s, b1s, and b0s
+	confounder.a1 <- rbinom(a1., 1, prob.a1.)
+	confounder.a0 <- rbinom(a0., 1, prob.a0.)
+	confounder.b1 <- rbinom(b1., 1, prob.b1.)
+	confounder.b0 <- rbinom(b0., 1, prob.b0.)
+	
+	# Update data
+	confounder <- vector(length = nrow(data))
+	confounder[rows.a1] <- confounder.a1
+	confounder[rows.a0] <- confounder.a0
+	confounder[rows.b1] <- confounder.b1
+	confounder[rows.b0] <- confounder.b0
+	data[[name]] <- confounder
+	
+	
+}
+
+
+
+#
+pbaIterateMisclassification <- function(exposure, model, misclassification, 
+		data, iter)
+{
+	# Find rows for a1s, a0s, b1s, and b0s
+	rows.a1 <- which(model$model[,1]==1 & model$model[,exposure]==1)
+	rows.a0 <- which(model$model[,1]==1 & model$model[,exposure]==0)
+	rows.b1 <- which(model$model[,1]==0 & model$model[,exposure]==1)
+	rows.b0 <- which(model$model[,1]==0 & model$model[,exposure]==0)
+	
+	
+	# Simulate occurence of correct classification for a1s, a0s, b1s, and b0s
+	correct.a1 <- rbinom(length(rows.a1), 1, misclassification$ppv.a[i])
+	correct.a0 <- rbinom(length(rows.a0), 1, misclassification$npv.a[i])
+	correct.b1 <- rbinom(length(rows.b1), 1, misclassification$ppv.b[i])
+	correct.b0 <- rbinom(length(rows.b0), 1, misclassification$npv.b[i])
+	
+	# Change exposure if classification not correct
+	data[rows.a1,exposure][correct.a1==0] <- 
+			as.numeric(!data[rows.a1,exposure][correct.a1==0])
+	data[rows.a0,exposure][correct.a0==0] <- 
+			as.numeric(!data[rows.a0,exposure][correct.a0==0])
+	data[rows.b1,exposure][correct.b1==0] <- 
+			as.numeric(!data[rows.b1,exposure][correct.b1==0])
+	data[rows.b0,exposure][correct.b0==0] <- 
+			as.numeric(!data[rows.b0,exposure][correct.b0==0])
+	
+	return(data)
+}
+
+
+#
 pbaBackCalculate <- function(a1.star, a0.star, b1.star, b0.star, 
 		se.a, sp.a, se.b, sp.b)
 # Function to back calculate the true number of exposed and 
@@ -146,7 +341,7 @@ pbaBackCalculate <- function(a1.star, a0.star, b1.star, b0.star,
 #			se.b    = sensitivity among non-cases (or controls)
 #			sp.b    = specificity among non-cases (or controls)
 #
-#	  RETURNS Data frame with columsns:
+#	  RETURNS Data frame with columns:
 #			a1.hat
 #			a0.hat
 #			b1.hat
@@ -203,20 +398,221 @@ pbaDistr <- function(distr, args)
 	result <- list(distr=distr, args=args)
 }
 
+
+
+# Sample misclassification parameters
+pbaSampleMisclassification <- function(misclassification, iter)
+{
+	# Create results list to store results
+	results <- list()
+	
+	# Add number of iterations to 'n' argument in pba.variables object
+	misclassification <- pbaAddIter(x=misclassification, iter=iter)
+	
+	# Sample the sensitivites and specificities
+	se.as.uncor <- do.call(misclassification$se.a.distr$distr, 
+			misclassification$se.a.distr$args)
+	sp.as.uncor <- do.call(misclassification$sp.a.distr$distr, 
+			misclassification$sp.a.distr$args)									
+	se.bs.uncor <- do.call(misclassification$se.b.distr$distr, 
+			misclassification$se.b.distr$args)
+	sp.bs.uncor <- do.call(misclassification$sp.b.distr$distr, 
+			misclassification$sp.b.distr$args)
+	
+	# Combine sampled uncorrelated sensitivities and specificities 
+	# into a data frame
+	uncorrelated <- data.frame(se.as.uncor, sp.as.uncor, se.bs.uncor, sp.bs.uncor)
+	
+	# Record the normal moments in a list
+	normalMoments <- function(t) {
+		as.list(c(mean=mean(t), sd=sd(t)))
+	}
+	normalMomentList.se <- alply(uncorrelated[,c('se.as.uncor','se.bs.uncor')], 
+			2, normalMoments)
+	normalMomentList.sp <- alply(uncorrelated[,c('sp.as.uncor','sp.bs.uncor')], 
+			2, normalMoments)
+	
+	# Normalize the uncorrelated sensitivities and specificities
+	normalize <- function(x) {
+		(x - mean(x)) / sd(x)
+	}
+	uncorrelated.normal <- apply(uncorrelated, 2, normalize)
+	
+	# Specify correlation matrix
+	cor.matrix.se <- matrix(c(1, misclassification$se.cor,
+					misclassification$se.cor, 1),
+			nrow=2)
+	cor.matrix.sp <- matrix(c(1, misclassification$sp.cor,
+					misclassification$sp.cor, 1),
+			nrow=2)
+	
+	# Generate correlated random draws with Gaussian copula
+	# Skip if correlation equals 1
+	if (misclassification$se.cor < 1) 
+	{
+		correlated.normal.se <- qnorm(rcopula.gauss(iter, cor.matrix.se))
+	}
+	if (misclassification$sp.cor < 1)
+	{
+		correlated.normal.sp <- qnorm(rcopula.gauss(iter, cor.matrix.sp))
+	}
+	
+	# De-normalize the correlated random draws with the normal moments 
+	# of the uncorrelated sensitivities and specificities
+	deNormalize <- function(x, sampleMean, sampleSd) {
+		(x * sampleSd + sampleMean)
+	}	
+	# First, sensitivities
+	if (misclassification$se.cor < 1) 
+	{
+		correlated.se <- correlated.normal.se
+		for (j in 1:ncol(correlated.se)) 
+		{
+			correlated.se[,j] <- deNormalize(correlated.normal.se[,j],
+					normalMomentList.se[[j]][[1]],
+					normalMomentList.se[[j]][[2]])
+		}
+		correlated.se <- data.frame(correlated.se)
+	} else
+	{
+		correlated.se <- uncorrelated[,c('se.as.uncor', 'se.as.uncor')]
+	}
+	names(correlated.se) <- c('se.a', 'se.b')
+	# Then, specificities
+	if (misclassification$sp.cor < 1)
+	{
+		correlated.sp <- correlated.normal.sp
+		for (j in 1:ncol(correlated.sp)) 
+		{
+			correlated.sp[,j] <- deNormalize(correlated.normal.sp[,j],
+					normalMomentList.sp[[j]][[1]],
+					normalMomentList.sp[[j]][[2]])
+		}
+		correlated.sp <- data.frame(correlated.sp)
+	} else
+	{
+		correlated.sp <- uncorrelated[,c('sp.as.uncor', 'sp.as.uncor')]
+	}
+	names(correlated.sp) <- c('sp.a', 'sp.b')
+	
+	result <- data.frame(correlated.se, correlated.sp)
+	
+	# Return results list
+	return(result)	
+}
+
+# Sample confounding paramaters
+pbaSampleConfounding <- function(confounding, iter)
+{
+	# Create a results list to store results
+	results <- list()
+	
+	# Iterate through variables
+	for (i in confounding)
+	{
+		if (!is.null(i$p1.distr))
+		{
+			# Add iter to n argument
+			i <- pbaAddIter(i, iter)
+			
+			# Sample the proportion distributions
+			p1 <- do.call(i$p1.distr$distr, i$p1.distr$args)
+			p0 <- do.call(i$p1.distr$distr, i$p1.distr$args)
+			
+			# Correct if p1 is < or > 0 or 1, respectively
+			p1 <- pbaCorrectConfounding(p = p1, distr = i$p1.distr$distr,
+					args = i$p1.distr$args)
+			p0 <- pbaCorrectConfounding(p = p0, distr = i$p0.distr$distr,
+					args = i$p0.distr$args)
+			
+			# Sample rr if specified, otherwise sample rd
+			if (!is.null(i$rr.distr))
+			{
+				rr <- do.call(i$rr.distr$distr, i$rr.distr$args)
+				rd <- rep(NA, iter)
+			} else
+			{
+				rd <- do.call(i$rd.distr$distr, i$rd.distr$args)
+				rr <- rep(NA, iter)
+			}
+		}
+		
+		results[[i$name]] <- data.frame(p1, p0, rr, rd)	
+	}
+
+	return(results)
+}
+
+
+
+
+
+
+# Function to backcalculate confounding
+pbaBackCalculateConfounding <- function(a1.=NULL, a0.=NULL, b1.=NULL, b0.=NULL, 
+		p1=NULL, p0=NULL, rr=NULL, rd=NULL)
+{
+	# Calculate total exposed / non exposed, and confounded / non confounded
+	n11 <- (a1. + b1.) * p1
+	n01 <- (a0. + b0.) * p0
+	n10 <- (a1. + b1.) - n11
+	n00 <- (a0. + b0.) - n10
+	n1.  <- a1. + b1.
+	n0.  <- a0. + b0.
+	
+	if (!is.null(rr))
+	{
+		# Calculate expected counts by rr
+		a11 <- (rr * n11 * a1.) / (rr * n11 + n1. - n11)
+		a01 <- (rr * n01 * a0.) / (rr * n01 + n0. - n01)
+		a10 <- a1. - a11
+		a00 <- a0. - a01
+		b11 <- n11 - a11
+		b01 <- n01 - a01
+		b10 <- b1. - b11
+		b00 <- b0. - b01
+	} else
+	{
+		# Calculate expected counts by rd
+		a11 <- ((rd * n1. * (n1. - n11)) + (a1. * n11)) / n1.
+		a01 <- ((rd * n0. * (n0. - n01)) + (a0. * n01)) / n0.
+		a10 <- a1. - a11
+		a00 <- a0. - a01
+		b11 <- n11 - a11
+		b01 <- n01 - a01
+		b10 <- b1. - b11
+		b00 <- b0. - b01	
+	}
+	
+	# Return result
+	result <- data.frame(a11, a01, a10, a00, b11, b01, b10, b00)
+	return(result)
+}
+
+
+
+
+
+
+
 # Function to create a define bias of a variable
 pbaVariable <- function(variable, # Character name of variable 
 		misclassification = list(se.a.distr=NULL, sp.a.distr=NULL, 
-				se.b.distr=NULL, sp.b.distr=NULL,
-				se.cor=NULL, sp.cor=NULL),
+														 se.b.distr=NULL, sp.b.distr=NULL,
+														 se.cor=NULL, sp.cor=NULL),
 		selection         = list(se.a.distr=NULL, sp.a.distr=NULL, 
-				se.b.distr=NULL, sp.b.distr=NULL,
-				se.cor=NULL, sp.cor=NULL,
-				or=NULL),
-		confounding       = list(p.a.distr=NULL, p.b=NULL, or=NULL)
+													 	 se.b.distr=NULL, sp.b.distr=NULL,
+														 se.cor=NULL, sp.cor=NULL,
+														 or=NULL),
+		confounding       = list(confounder=list(p1.distr=NULL, p0.distr=NULL, 
+														 rr.distr=NULL, rd.distr=NULL,
+														 name=NULL))
 )
 {											
 	result <- list()
-	result[[variable[[1]]]] <- list(variable=variable, misclassification=misclassification, selection=selection,
+	result[[variable[[1]]]] <- list(variable=variable, 
+			misclassification=misclassification, 
+			selection=selection,
 			confounding=confounding)
 	
 	return(result)	
@@ -225,9 +621,7 @@ pbaVariable <- function(variable, # Character name of variable
 
 
 # Function to calculate sensitivity and specificity
-pbaMisclassification <- function(model,
-		pba.variables,
-		iter)
+pbaMisclassification <- function(model, pba.variables, iter)
 # Returns list of tables with expected counts, sensitivity, specificity,
 # positive predictive value, negative predictive value, observed odds ratio,
 # and expected odds ratio
@@ -265,10 +659,10 @@ pbaMisclassification <- function(model,
 				a0.star=a0.stars, 
 				b1.star=b1.stars,
 				b0.star=b0.stars,
-				se.a = correlated.tables[[i]]$se.as,
-				sp.a = correlated.tables[[i]]$sp.as,
-				se.b = correlated.tables[[i]]$se.bs,
-				sp.b = correlated.tables[[i]]$sp.bs)
+				se.a = correlated.tables[[i]]$se.a,
+				sp.a = correlated.tables[[i]]$sp.a,
+				se.b = correlated.tables[[i]]$se.b,
+				sp.b = correlated.tables[[i]]$sp.b)
 		
 		## Replace rows with counts less than 0	
 		# Identify rows with counts less than 0
@@ -447,7 +841,7 @@ pbaBiasCor <- function(pba.variables, iter)
 		{
 			correlated.sp <- uncorrelated[,c('sp.as.uncor', 'sp.as.uncor')]
 		}
-		names(correlated.sp) <- c('sp.as', 'sp.bs')
+		names(correlated.sp) <- c('sp.a', 'sp.b')
 		
 		result <- data.frame(uncorrelated, correlated.se, correlated.sp)
 		
@@ -548,7 +942,7 @@ pbaBiasCorCheck <- function(result, pba.variables)
 					{
 						any(c(is.na(x), x < 0, x > 1))
 					})
-			rows.replace <- which(invalide)
+			rows.replace <- which(invalid)
 			
 			iter.replace <- length(rows.replace)
 			
@@ -668,4 +1062,183 @@ pbaPlotBias <- function(pba, density=T)
 	{
 		return(p3)
 	}
+}
+
+
+
+pbaAddIter <- function(x, iter)
+{
+	for (i in names(x))
+	{
+		if (is.list(x[[i]]))
+		{
+			x[[i]]$args$n <- iter
+		}
+	}
+	
+	return(x)
+}
+
+
+
+
+# Funciton to generate bias tables from pbaVariables
+pbaBiasTables <- function(pbaVariables, iter)
+{
+	results <- list()
+	
+	for (i in pbaVariables)
+	{
+		misclassification <- pbaSampleMisclassification(
+			misclassification = i$misclassification, iter = iter)
+		selection <- list()
+		confounding <- pbaSampleConfounding(
+			confounding = i$confounding, iter = iter)
+		results[[i$variable]] <- list(misclassification = misclassification,
+																selection = selection,
+																confounding = confounding)
+	}
+	
+	return(results)
+}
+
+
+# Function to calculate PPV and NPV for misclassification
+pbaCalculatePredictiveValues <- function(bias.tables, model, iter)
+{
+	for (i in names(bias.tables))
+	{
+		result <- pbaCalculatePredictiveValuesInternal(exposure = i,
+				misclassification = bias.tables[[i]]$misclassification, model = model,
+				iter = iter)
+		# Bind result to bias table
+		bias.tables[[i]]$misclassification <- cbind(bias.tables[[i]]$misclassification,
+				result[,c('a1.hat','a0.hat','b1.hat','b0.hat','ppv.a','npv.a','ppv.b',
+				'npv.b')])
+	}	
+
+	return(bias.tables)
+}
+
+
+#
+pbaCalculatePredictiveValuesInternal <- function(exposure, misclassification, 
+		model, iter)
+{
+	# Create observed contigency table from model
+	table.star <- table(model$model[,1], model$model[,exposure])
+	a1.star <- table.star[4]
+	a0.star <- table.star[2]
+	b1.star <- table.star[3]
+	b0.star <- table.star[1]
+	
+	# Create vector of counts to use with pbaBackCalculate
+	a1.stars <- rep(a1.star, iter)
+	a0.stars <- rep(a0.star, iter)
+	b1.stars <- rep(b1.star, iter)
+	b0.stars <- rep(b0.star, iter)
+	
+	# Back calculate expected counts, as well as
+	# positive predicted values and negative predicted values
+	result <- pbaBackCalculate(a1.star=a1.stars, 
+			a0.star=a0.stars, 
+			b1.star=b1.stars,
+			b0.star=b0.stars,
+			se.a = misclassification$se.a,
+			sp.a = misclassification$sp.a,
+			se.b = misclassification$se.b,
+			sp.b = misclassification$sp.b)
+	
+	return(result)
+}
+
+
+
+
+
+# Remove and resample if values are less than 0 or greater than 1
+pbaCorrectConfounding <- function(p, distr, args)
+{
+	rows <- which(p < 0 | p > 1)
+	while (length(rows) > 0)
+	{
+		args$n <- length(rows)
+		p[rows] <- do.call(distr, args)
+		rows <- which(p < 0 | p > 1)
+	}
+	
+	return(p)
+}
+
+# Remove and resample if misclassification
+pbaCorrectMisclassification <- function(bias.tables, pbaVariables, model, iter)
+{
+	for (i in names(pbaVariables))
+	{
+		# Find rows needing replacement
+		rows <- which(bias.tables[[i]]$misclassification$a1.hat < 0 |	
+						bias.tables[[i]]$misclassification$a0.hat < 0 |
+						bias.tables[[i]]$misclassification$b1.hat < 0 |
+						bias.tables[[i]]$misclassification$b0.hat < 0 |
+						bias.tables[[i]]$misclassification$ppv.a < 0 |
+						bias.tables[[i]]$misclassification$ppv.a > 1 |
+						bias.tables[[i]]$misclassification$npv.a < 0 |
+						bias.tables[[i]]$misclassification$npv.a > 1 |
+						bias.tables[[i]]$misclassification$ppv.b < 0 |
+						bias.tables[[i]]$misclassification$ppv.b > 1 |
+						bias.tables[[i]]$misclassification$npv.b < 0 |
+						bias.tables[[i]]$misclassification$npv.b > 1 |
+						bias.tables[[i]]$misclassification$se.a < 0 |
+						bias.tables[[i]]$misclassification$se.a > 1 |
+						bias.tables[[i]]$misclassification$se.b < 0 |
+						bias.tables[[i]]$misclassification$se.b > 1 |
+						bias.tables[[i]]$misclassification$sp.a < 0 |
+						bias.tables[[i]]$misclassification$sp.a > 1 |
+						bias.tables[[i]]$misclassification$sp.b < 0 |
+						bias.tables[[i]]$misclassification$sp.b > 1 )
+		
+		while (length(rows) > 0)
+		{
+			# Resample sensitivities and specificities for rows needing replacement
+			bias.tables[[i]]$misclassification[rows,c('se.a','se.b','sp.a','sp.b')] <- 
+					pbaSampleMisclassification(
+					misclassification = pbaVariables[[i]]$misclassification,
+					iter = length(rows))
+	
+			# Calculate predictive values of replaced rows
+			result <- pbaCalculatePredictiveValuesInternal(exposure = i,
+					misclassification = bias.tables[[i]]$misclassification[rows,], 
+					model = model, iter = length(rows))
+			
+			# Replace predictive values
+			bias.tables[[i]]$misclassification[rows,c('a1.hat','a0.hat','b1.hat',
+							'b0.hat','ppv.a','npv.a','ppv.b','npv.b')] <- 
+					result[,c('a1.hat','a0.hat','b1.hat','b0.hat','ppv.a','npv.a','ppv.b',
+									'npv.b')]
+			
+			# Find rows needing replacement
+			rows <- which(bias.tables[[i]]$misclassification$a1.hat < 0 |	
+							bias.tables[[i]]$misclassification$a0.hat < 0 |
+							bias.tables[[i]]$misclassification$b1.hat < 0 |
+							bias.tables[[i]]$misclassification$b0.hat < 0 |
+							bias.tables[[i]]$misclassification$ppv.a < 0 |
+							bias.tables[[i]]$misclassification$ppv.a > 1 |
+							bias.tables[[i]]$misclassification$npv.a < 0 |
+							bias.tables[[i]]$misclassification$npv.a > 1 |
+							bias.tables[[i]]$misclassification$ppv.b < 0 |
+							bias.tables[[i]]$misclassification$ppv.b > 1 |
+							bias.tables[[i]]$misclassification$npv.b < 0 |
+							bias.tables[[i]]$misclassification$npv.b > 1 |
+							bias.tables[[i]]$misclassification$se.a < 0 |
+							bias.tables[[i]]$misclassification$se.a > 1 |
+							bias.tables[[i]]$misclassification$se.b < 0 |
+							bias.tables[[i]]$misclassification$se.b > 1 |
+							bias.tables[[i]]$misclassification$sp.a < 0 |
+							bias.tables[[i]]$misclassification$sp.a > 1 |
+							bias.tables[[i]]$misclassification$sp.b < 0 |
+							bias.tables[[i]]$misclassification$sp.b > 1 )
+		}
+	}
+	
+	return(bias.tables)
 }
