@@ -1,27 +1,56 @@
 # pba plot method
-pbaPlotBias <- function(pba, density=T, scales='free', print=T)
+pbaPlotBias <- function(pba, density=T, scales='free', print=T, types=NULL)
 {
+	# Which biases are defined in bias.tables
+	
+	
+	# Choose types of bias to plot
+	if (is.null(types))
+	{
+		
+	}
+	
 	# Melt data into long-form
 	data <- melt(pba$bias.tables)
 	columns <- which(names(data) %in% c('variable', 'value', 'L1', 'L2', 'L3'))
 	data <- data[ , columns]
 	
+	# Create plots list to store plots
+	plots <- list()
+	
 	# Misclassification
-	plot.misclassification <- pbaPlotMisclassification(data = data, 
-			density = density, scales = scales)
+	if ('misclassification' %in% types)
+	{
+		plots$misclassification <- pbaPlotMisclassification(data = data, 
+				density = density, scales = scales)
+	}
+	
+	# Selection
+	if ('selection' %in% types)
+	{
+		plots$selection <- pbaPlotSelection(data = data, 
+				density = density, scales = scales)
+	}
 	
 	# Confounding proportions
-	plot.confounding.proportions <- pbaPlotConfoundingProportions(data = data, 
-			density = density, scales = scales)
+	if ('confounding' %in% types)
+	{
+		plots$confounding.proportions <- pbaPlotConfoundingProportions(data = data, 
+				density = density, scales = scales)
+	}
 	
 	# Confounding risks
-	plot.confounding.risks <- pbaPlotConfoundingRisks(data = data, 
-			density = density, scales = scales)
+	if ('confounding' %in% types)
+	{
+		plots$confounding.risks <- pbaPlotConfoundingRisks(data = data, 
+				density = density, scales = scales)
+	}
 	
 	# Define viewports
-	vp.misclassification <- viewport(width = 1/2, height = 1, x = 1/4, y = 1/2)
-	vp.confounding.proportions <- viewport(width = 1/2, height = 2/3, x =3/4, y = 4/6)
-	vp.confounding.risks <- viewport(width = 1/2, height = 1/3, x =3/4, y = 1/6)
+	#vps <- list()
+	#vps$misclassification <- viewport(width = 1/2, height = 1, x = 1/4, y = 1/2)
+	#vps$confounding.proportions <- viewport(width = 1/2, height = 2/3, x =3/4, y = 4/6)
+	#vps$confounding.risks <- viewport(width = 1/2, height = 1/3, x =3/4, y = 1/6)
 	
 	# Print plots with viewports
 	if (print)
@@ -31,24 +60,17 @@ pbaPlotBias <- function(pba, density=T, scales='free', print=T)
 		print(plot.confounding.risks, vp = vp.confounding.risks)
 	}
 	
-	# Save plots with viewports
-	plots <- list(misclassification = plot.misclassification, 
-			confounding.proportions = plot.confounding.proportions,
-			confounding.risks = plot.confounding.risks)
-	vps <- list(misclassification = vp.misclassification, 
-			confounding.proportions = vp.confounding.proportions,
-			confounding.risks = vp.confounding.risks)
 	
 	# Return plots and viewports
-	result <- list(plots=plots, vps=vps)
-	return(result)
+	#result <- list(plots=plots, vps=vps)
+	return(plots)
 }
 
 
 # Misclassification
 pbaPlotMisclassification <- function(pba=NULL, data=NULL, density=T,
 		parameters=c('se.a', 'se.b', 'sp.a', 'sp.b'), title='Misclassification', 
-		scales='free')
+		scales='free', L2='misclassification')
 {
 	if (is.null(data))
 	{
@@ -59,7 +81,7 @@ pbaPlotMisclassification <- function(pba=NULL, data=NULL, density=T,
 	}
 	
 	# Subset misclassification data and parameters
-	data <- subset(data, L2 == 'misclassification' & variable %in% parameters)
+	data <- subset(data, L2 == L2 & variable %in% parameters)
 	
 	# Define facet object
 	facet <- facet_grid(variable~L1, scales = scales)
@@ -88,7 +110,7 @@ pbaPlotMisclassification <- function(pba=NULL, data=NULL, density=T,
 # Confounding proportions
 pbaPlotConfoundingProportions <- function(pba=NULL, data=NULL,
 		parameters=c('p1', 'p0'), density=T, title='Confounding (proportions)', 
-		scales='free')
+		scales='free', L2='confounding')
 {
 	if (is.null(data))
 	{
@@ -99,7 +121,7 @@ pbaPlotConfoundingProportions <- function(pba=NULL, data=NULL,
 	}
 	
 	# Subset confounding data and proportions data
-	data <- subset(data, L2 == 'confounding' & !is.na(value) & 
+	data <- subset(data, L2 == L2 & !is.na(value) & 
 					variable %in% parameters)
 	
 	# Define faet object
@@ -129,7 +151,7 @@ pbaPlotConfoundingProportions <- function(pba=NULL, data=NULL,
 # Confounding risks
 pbaPlotConfoundingRisks <- function(pba=NULL, data=NULL,
 		parameters=c('rr', 'rd'), density=T, title='Confounding (relative risks)',
-		scales='free')
+		scales='free', L2='confounding')
 {
 	if (is.null(data))
 	{
@@ -138,9 +160,9 @@ pbaPlotConfoundingRisks <- function(pba=NULL, data=NULL,
 		columns <- which(names(data) %in% c('variable', 'value', 'L1', 'L2', 'L3'))
 		data <- data[ , columns]
 	}
-		
+	
 	# Subset confounding data and risk data
-	data <- subset(data, L2 == 'confounding' & !is.na(value) & 
+	data <- subset(data, L2 == L2 & !is.na(value) & 
 					variable %in% parameters)
 	
 	# Define faet object
@@ -258,4 +280,15 @@ pbaLabeller <- function(x, y)
 	}
 	
 	return(y)
+}
+
+
+
+# Selection
+pbaPlotSelection <- function(pba=NULL, data=NULL, density=T,
+		parameters=c('s.a1', 's.a0', 's.b1', 's.b0'), title='Selection', 
+		scales='free', L2='selection')
+{
+	pbaPlotMisclassification(pba = pba, data = data, density = density,
+			parameters = parameters, title = title, scales = scales, L2 = L2)
 }
