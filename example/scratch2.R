@@ -316,3 +316,22 @@ print(p1$plots[[2]], vp = p1$vps[[2]])
 print(p1$plots[[3]], vp = p1$vps[[3]])
 
 
+
+
+
+
+
+# check memory
+test <- list()
+for(i in 1:100000)
+{
+	test[[i]] <- glm1$data
+}
+
+
+
+
+Rprof()
+pba1 <- pba(glm1, exp.non.differential, iter=100, alpha=0.05)
+Rprof(NULL)
+summaryRprof()

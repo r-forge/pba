@@ -20,8 +20,10 @@ setwd(directory)
 
 # Load pba function
 source('C:/Users/jthetzel/Research/pba/pkg/R/pba.R')
+source('C:/Users/jthetzel/Research/pba/pkg/R/plots.R')
 source('C:/Users/jthetzel/Research/pba/pkg/R/rtrapezoid.R')
 source('/home/jthetzel/Research/pba/pkg/R/pba.R')
+source('/home/jthetzel/Research/pba/pkg/R/plots.R')
 source('/home/jthetzel/Research/pba/pkg/R/rtrapezoid.R')
 
 # Set seed for reproducibility
@@ -64,10 +66,11 @@ exp.differential <- pbaVariable(variable='exp',
 							 
 # Perform pba analysis, non-differential
 pba1 <- pba(glm1, exp.non.differential, iter=100, alpha=0.05)
-lapply(pbaSummary(pba1), exp) # Original report in Fox:
+pbaSummary(pba1, transformation="exp", scale="multiplicative") 
+													# Original report in Fox:
 													# Odds ratio (95% CL): 2.4 (1.2, 14)
 pbaPlotBiasMisclassification(pba1)
-pbaPlotBias(pba1, density=F)
+pbaPlotBias(pba1)
 pbaPlotEstimates(pba1)
 pbaPlotEstimates(pba1, variables=c(-1))
 pbaPlotEstimates(pba1, density=F)
@@ -78,8 +81,8 @@ pbaPlotEstimates(pba1, exp=T)
 
 
 # Perform pba analysis, differential
-pba2 <- pba(glm1, exp.differential, iter=300, alpha=0.05)
-lapply(pba2$summary, exp) # Original report in Fox:
+pba2 <- pba(glm1, exp.differential, iter=100, alpha=0.05)
+lapply(pbaSummary(pba2), exp) # Original report in Fox:
 													# Odds ratio (95% CL): 3.6 (1.6, 52)
 pbaPlotBias(pba2)
 pbaPlotBias(pba2, density=T)
@@ -114,7 +117,7 @@ exp2 <- pbaVariable(variable='exp2',
 
 # Perform bias analysis with two bias variables
 pba3 <- pba(glm2, c(exp.non.differential, exp2), iter=100, alpha=0.05)
-lapply(pba3$summary, exp)
+lapply(pbaSummary(pba3), exp)
 pbaPlotBias(pba3)
 pbaPlotBias(pba3, density=F)
 pbaPlotEstimates(pba3)
@@ -125,8 +128,9 @@ pbaPlotEstimates(pba3, exp=T)
 glm3 <- glm(case ~ exp + exp2, data=example, family=poisson())
 
 # Perform bias analysis with two bias variables on poisson model
-pba4 <- pba(glm3, c(exp.differential, exp2), iter=1000, alpha=0.05)
-lapply(pba4$summary, exp)
+pba4 <- pba(glm3, c(exp.differential, exp2), iter=100, alpha=0.05)
+lapply(pbaSummary(pba4), exp)
+pbaSummary(pba4)
 pbaPlotBias(pba4)
 pbaPlotBias(pba4, density=T)
 pbaPlotEstimates(pba4)
@@ -136,10 +140,6 @@ pbaPlotEstimates(pba4, exp=T, variables=c(-1))
 
 
 # Load saved data
-
-
-
-
 
 
 
