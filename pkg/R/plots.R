@@ -160,7 +160,7 @@ pbaPlotConfoundingRisks <- function(pba=NULL, data=NULL,
 		columns <- which(names(data) %in% c('variable', 'value', 'L1', 'L2', 'L3'))
 		data <- data[ , columns]
 	}
-	
+		
 	# Subset confounding data and risk data
 	data <- subset(data, L2 == L2 & !is.na(value) & 
 					variable %in% parameters)
