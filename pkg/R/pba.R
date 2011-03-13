@@ -1,7 +1,8 @@
-# pba: Probabilistic Bias Analysis
-# 
-# Jeremy Thoms Hetzel
-# jthetzel@gmail.com
+###############################################################################
+# pba: Probabilistic Bias Analysis                                            #
+# version 0.2                                                                            #
+# Jeremy Thoms Hetzel                                                         #
+# jthetzel@gmail.com                                                          #
 ###############################################################################
 
 
@@ -30,6 +31,8 @@ pba <- function(model,
 {
 	# Record start time
 	time.start <- Sys.time()
+	
+	call <- match.call()
 	
 	# Create summary of original model
 	model.summary <- summary(model)
@@ -117,7 +120,9 @@ pba <- function(model,
 	time.end <- Sys.time()
 	time.elapsed <- time.end - time.start
 	
-	results <- list(bias.tables = bias.tables,
+	results <- list(
+			call = call,
+			bias.tables = bias.tables,
 			coefficients.hat = coefficients.hat,
 			coefficients.hat.random = coefficients.hat.random,
 			coefficients.star = coefficients.star,
@@ -129,6 +134,7 @@ pba <- function(model,
 			model.summaries = model.summaries,
 			time.elapsed = time.elapsed)
 	
+	class(results) <- "pba"
 	return(results)
 }
 
@@ -945,7 +951,7 @@ pbaAddIter <- function(x, iter)
 
 # Create summary list of observed, bias adjusted, and bias and random
 # error adjusted
-pbaSummary <- function(pba)
+pbaSummary <- function(pba, scale="additive", transformation=NULL, ...)
 {
 	
 	model <- pba$model
@@ -958,6 +964,7 @@ pbaSummary <- function(pba)
 	summary <- list()
 	
 	# Summarize estimate and confidience limits from observed model
+	estimate <- coefficients.star[,'Estimate']
 	summary$star <- data.frame(estimate=coefficients.star[,'Estimate'],
 			confint(model, level=1 - alpha),
 			p=coefficients.star[,'Pr(>|z|)'])
@@ -1001,7 +1008,36 @@ pbaSummary <- function(pba)
 	summary$hat.random$p <- ifelse(summary$hat.random$p > 0.5, 
 			1 - summary$hat.random$p, summary$hat.random$p)
 	
+	# Apply transformation
+	if (!is.null(transformation))
+	{
+		summary <- lapply(summary, function(x)
+		{
+			x[,-4] <- do.call(transformation, args=list(x[,-4], ...))
+		})
+	}
+	
+	# Calculate precision
+	if (scale == "additive")
+	{
+		summary <- lapply(summary, function(x)
+				{
+					x$precision <- x[,3] - x[,2]
+					return(x)
+				})
+	}
+	
+	if (scale == "multiplicative")
+	{
+		summary <- lapply(summary, function(x)
+				{
+					x$precision <- x[,3] / x[,2]
+					return(x)
+				})
+	}
+	
 	# Return summary
+	class(summary) <- "summary.pba"
 	return(summary)
 }
 
@@ -1027,6 +1063,7 @@ pbaVariable <- function(variable, # Character name of variable
 			selection=selection,
 			confounding=confounding)
 	
+	class(result) <- "pba.variables"
 	return(result)	
 }
 
@@ -1056,31 +1093,42 @@ pbaIterateSelection <- function(model, model.original=NULL, bias.tables, iter)
 		# Iterate variables
 		for (j in names(selection))
 		{	
-			prob <- vector(length = rows)
-			
-			# Find rows for a1s, a0s, b1s, and b0s
-			rows.a1 <- which(data[,1]==1 & data[,j]==1)
-			rows.a0 <- which(data[,1]==1 & data[,j]==0)
-			rows.b1 <- which(data[,1]==0 & data[,j]==1)
-			rows.b0 <- which(data[,1]==0 & data[,j]==0)
-			
-			# Assign probability of being selected
-			prob[rows.a1] <- selection[[j]]$s.a1
-			prob[rows.a0] <- selection[[j]]$s.a0
-			prob[rows.b1] <- selection[[j]]$s.b1
-			prob[rows.b0] <- selection[[j]]$s.b0
-			
-			# Store result
-			probs[[j]] <- prob
+			# Return if no selection bias defined for variable
+			if (length(selection[[j]]) > 0)
+			{			
+				# Create empty vector to store selection probabilities
+				prob <- vector(length = rows)
+				
+				# Find rows for a1s, a0s, b1s, and b0s
+				rows.a1 <- which(data[,1]==1 & data[,j]==1)
+				rows.a0 <- which(data[,1]==1 & data[,j]==0)
+				rows.b1 <- which(data[,1]==0 & data[,j]==1)
+				rows.b0 <- which(data[,1]==0 & data[,j]==0)
+				
+				# Assign probability of being selected
+				prob[rows.a1] <- selection[[j]]$s.a1
+				prob[rows.a0] <- selection[[j]]$s.a0
+				prob[rows.b1] <- selection[[j]]$s.b1
+				prob[rows.b0] <- selection[[j]]$s.b0
+				
+				# Store result
+				probs[[j]] <- prob
+			}
 		}
 		
 		# Calculate joint probability of not being selected
 		not.selected.prob <- 1 - Reduce("*", probs)
 		
 		# Over sample observations
-		not.selected <- rbinom(rows, 1, not.selected.prob)	
-		model.updated$data <- rbind(data, data[which(not.selected==1),])
-		models.updated[[i]] <- model.updated
+		if (length(not.selected.prob) > 0)
+		{
+			not.selected <- rbinom(rows, 1, not.selected.prob)	
+			model.updated$data <- rbind(data, data[which(not.selected==1),])
+			models.updated[[i]] <- model.updated
+		} else
+		{
+			models.updated[[i]] <- model
+		}
 	}
 	
 	return(models.updated)
@@ -1175,4 +1223,97 @@ pbaCorrectConfounding <- function(p, distr, args)
 	}
 	
 	return(p)
+}
+
+
+# Summary method for pba objects
+summary.pba <- function(x, ...)
+{
+	pbaSummary(x, ...)
+}
+
+
+# Print method for pba objects
+print.pba <- function (x, digits = max(3, getOption("digits") - 3), ...) 
+{
+	cat("\nCall:  ", paste(deparse(x$call), sep = "\n", collapse = "\n"), 
+			"\n\n", sep = "")
+	cat("\nA pba (Probabilistic Bias Analysis) object\n")
+	cat(paste("\nIterations: ", x$iter, "\n\n", sep = ""))
+	if (length(x$coefficients.star)) {
+		cat("Original coefficients without bias adjustment")
+		cat(":\n")
+		print.default(format(x$coefficients.star, digits = digits), 
+				print.gap = 2, quote = FALSE)
+	}
+	else cat("No coefficients\n\n")
+	invisible(x)
+}
+
+
+# Print method for pba.variables object
+print.pba.variables <- function(x, ...)
+{
+	if(length(x) == 1)
+	{
+		variables <- paste(": ", names(x), sep="")
+	} else if(length(x) > 1)
+	{
+		variables <- paste("s: ", paste(names(x), collapse=", "), sep="")
+	} else
+	{
+		cat("\n\nNo bias parameters defined]n")
+		break()
+	}
+	cat(paste("\nA pba.variables object describing bias parameters for the following
+		variable", variables, "\n", sep=""))
+	for (i in names(x))
+	{
+		cat(paste("\nVariable ", i, ":\n", sep=""))
+		if(!is.null(x[[i]]$misclassification[[1]]))
+		{
+			cat("\tMisclassification with:\n")
+				cat(paste("\t\tSensitivity among cases distribution of", 
+					x[[i]]$misclassification$se.a.distr$distr, "\n"))
+				cat(paste("\t\tSensitivity among non-cases distribution of", 
+								x[[i]]$misclassification$se.b.distr$distr, "\n"))
+				cat(paste("\t\tSpecificity among cases distribution of", 
+								x[[i]]$misclassification$sp.a.distr$distr, "\n"))
+				cat(paste("\t\tSpecificity among non-cases distribution of", 
+								x[[i]]$misclassification$sp.b.distr$distr, "\n"))		
+		}
+		if(!is.null(x[[i]]$selection[[1]]))
+		{
+			cat("\tSelection with\n")
+			cat(paste("\t\tSelection among exposed cases distribution of", 
+							x[[i]]$selection$s.a1.distr$distr, "\n"))
+			cat(paste("\t\tSelection among non-exposed cases distribution", 
+							x[[i]]$selection$s.a0.distr$distr, "\n"))
+			cat(paste("\t\tSelection among exposed non-cases distribution of", 
+							x[[i]]$selection$s.b1distr$distr, "\n"))
+			cat(paste("\t\tSelection among non-exposed non-cases distribution of", 
+							x[[i]]$selection$s.b0.distr$distr, "\n"))	
+		}
+		if(!is.null(x[[i]]$confounding[[1]][[1]]))
+		{
+			for (j in names(x[[i]]$confounding))
+			{
+				cat(paste("\tUnmeasured confounding by", x[[i]]$confounding[[j]]$name, "with:\n"))
+				cat(paste("\t\tProportion among exposed distribution of",
+								x[[i]]$confounding[[j]]$p1.distr$distr, "\n"))
+				cat(paste("\t\tProportion among non-exposed distribution of",
+								x[[i]]$confounding[[j]]$p0.distr$distr, "\n"))
+				if(!is.null(x[[1]]$confounding[[j]]$rr.distr))
+				{
+					cat(cat(paste("\t\tRelative risk of confounding distribution of",
+								x[[i]]$confounding[[j]]$rr.distr$distr, "\n")))
+				}
+				if(!is.null(x[[1]]$confounding[[j]]$rd.distr))
+				{
+					cat(cat(paste("\t\tRisk difference of confounding distribution of",
+											x[[i]]$confounding[[j]]$rr.distr$distr, "\n")))
+				}
+			}
+		}			
+	}
 }
