@@ -1012,9 +1012,9 @@ pbaSummary <- function(pba, scale="additive", transformation=NULL, ...)
 	if (!is.null(transformation))
 	{
 		summary <- lapply(summary, function(x)
-				{
-					x[,-4] <- do.call(transformation, args=list(x[,-4], ...))
-				})
+		{
+			x[,-4] <- do.call(transformation, args=list(x[,-4], ...))
+		})
 	}
 	
 	# Calculate precision
@@ -1266,21 +1266,21 @@ print.pba.variables <- function(x, ...)
 		break()
 	}
 	cat(paste("\nA pba.variables object describing bias parameters for the following
-							variable", variables, "\n", sep=""))
+		variable", variables, "\n", sep=""))
 	for (i in names(x))
 	{
 		cat(paste("\nVariable ", i, ":\n", sep=""))
 		if(!is.null(x[[i]]$misclassification[[1]]))
 		{
 			cat("\tMisclassification with:\n")
-			cat(paste("\t\tSensitivity among cases distribution of", 
-							x[[i]]$misclassification$se.a.distr$distr, "\n"))
-			cat(paste("\t\tSensitivity among non-cases distribution of", 
-							x[[i]]$misclassification$se.b.distr$distr, "\n"))
-			cat(paste("\t\tSpecificity among cases distribution of", 
-							x[[i]]$misclassification$sp.a.distr$distr, "\n"))
-			cat(paste("\t\tSpecificity among non-cases distribution of", 
-							x[[i]]$misclassification$sp.b.distr$distr, "\n"))		
+				cat(paste("\t\tSensitivity among cases distribution of", 
+					x[[i]]$misclassification$se.a.distr$distr, "\n"))
+				cat(paste("\t\tSensitivity among non-cases distribution of", 
+								x[[i]]$misclassification$se.b.distr$distr, "\n"))
+				cat(paste("\t\tSpecificity among cases distribution of", 
+								x[[i]]$misclassification$sp.a.distr$distr, "\n"))
+				cat(paste("\t\tSpecificity among non-cases distribution of", 
+								x[[i]]$misclassification$sp.b.distr$distr, "\n"))		
 		}
 		if(!is.null(x[[i]]$selection[[1]]))
 		{
@@ -1306,7 +1306,7 @@ print.pba.variables <- function(x, ...)
 				if(!is.null(x[[1]]$confounding[[j]]$rr.distr))
 				{
 					cat(cat(paste("\t\tRelative risk of confounding distribution of",
-											x[[i]]$confounding[[j]]$rr.distr$distr, "\n")))
+								x[[i]]$confounding[[j]]$rr.distr$distr, "\n")))
 				}
 				if(!is.null(x[[1]]$confounding[[j]]$rd.distr))
 				{
@@ -1314,6 +1314,7 @@ print.pba.variables <- function(x, ...)
 											x[[i]]$confounding[[j]]$rr.distr$distr, "\n")))
 				}
 			}
-		}			
+		}
+			
 	}
 }
