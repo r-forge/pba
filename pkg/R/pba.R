@@ -1,9 +1,50 @@
 ###############################################################################
 # pba: Probabilistic Bias Analysis                                            #
-# version 0.2                                                                            #
+# version 0.2-1                                                               #
 # Jeremy Thoms Hetzel                                                         #
 # jthetzel@gmail.com                                                          #
 ###############################################################################
+
+
+#' Performs bias analysis with probabilistic methods
+#'
+#' \tabular{ll}{
+#' Package: \tab pba\cr
+#' Type: \tab Package\cr
+#' Version: \tab 0.2-1\cr
+#' Date: \tab 2011-03-22\cr
+#' Title: \tab Probabilistic Bias Analysis\cr
+#' Author@@R: \tab person("Jeremy", "Hetzel", "Thoms",email = "jthetzel@@gmail.com")\cr
+#' Author: \tab Jeremy T. Hetzel <jthetzel@@gmail.com>\cr
+#' Maintainer: \tab Jeremy T. Hetzel \email{jthetzel@@gmail.com}\cr
+#' Depends: \tab R (>= 2.12.0), plyr, ggplot2\cr
+#' Description: \tab The pba package performs probabilistic bias analyses, 
+#' with methods are adapted from Lash TL, Fox MP, and Fink AK's Applying 
+#' Quantitative Bias Analysis to Epidemiological Data (2010). Currently,
+#' only methods for adjustment of misclassification bias are included.\cr
+#' License: \tab GPL-3\cr
+#' URL: \tab http://pba.r-forge.r-project.org/\cr
+#' BugReports: \tab https://r-forge.r-project.org/tracker/?func=add&group_id=988&atid=3913\cr		
+#' LazyLoad: \tab yes\cr
+#' LazyData: \tab yes\cr
+#' }
+#' 
+#' pba: Probabilistic Bias Analysis
+#' 
+#' The pba package performs probabilistic bias analyses, with methods are 
+#' adapted from Lash TL, Fox MP, and Fink AK's Applying Quantitative Bias 
+#' Analysis to Epidemiological Data (2010). Currently, only methods for 
+#' adjustment of misclassification bias are included.
+#' 
+#' @name pba-package
+#' @docType package
+#' @import plyr
+#' @import reshape
+#' @import ggplot2
+#' @import QRMlib
+#' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
+#' 
+roxygen()
 
 
 
@@ -14,7 +55,6 @@ expit <- function(x)
 }
 
 
-
 # Convenience functions: logit()
 logit <- function(x)
 {
@@ -22,12 +62,39 @@ logit <- function(x)
 }
 
 
+#' Main function to perform a probabilistic bias analysis
+#' 
+#' @param model A glm or lm object.
+#' @param pba.variables One or more pba.variables objects which define bias 
+#' parameters.
+#' @param iter Number of iterations to perform.
+#' 
+#' @return The pba function returns an object of class \code{pba}.
+#' An object of class \code{pba} is a list containing at least the following 
+#' components:
+#' \item{call}{The matched call.}
+#' \item{bias.tables}{A list of values of the bias parameters sampled at each 
+#' iteration.}
+#' \item{coefficients.hat}{A list of the coefficients at each iteration after 
+#' adjusting for bias.}
+#' \item{coefficients.hat.random}{A list of the coefficients at each iteration 
+#' after adjusting for bias and random error.}
+#' \item{coefficients.star}{Named vector of coefficients from the original glm 
+#' or lm object, before adjustment for bias.}
+#' \item{model}{The model frame from the original glm or lm object.}
+#' \item{iter}{Number of iterations.}
+#' \item{pba.variables}{The pba.variables object describing the bias 
+#' parameters.}
+#' \item{model.summaries}{List of model summaries at each iteration.}
+#' \item{time.elapsed}{Time elapsed during evaluation of the pba function.}
+#' 
+#' @export 
+#' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
 
 # Main function to perform PBA
 pba <- function(model,
 		pba.variables,
-		iter = 1000,
-		alpha = 0.05)
+		iter = 1000)
 {
 	# Record start time
 	time.start <- Sys.time()
@@ -128,7 +195,6 @@ pba <- function(model,
 			coefficients.star = coefficients.star,
 			bias.lists = bias.lists,
 			model = model,
-			alpha = alpha,
 			iter = iter,
 			pba.variables = pba.variables,
 			model.summaries = model.summaries,
@@ -482,159 +548,12 @@ pbaBiasListsTables <- function(bias.lists)
 
 
 
-# Plot sensitivities and specificities
-# Misclassification
-pbaPlotBiasMisclassification <- function(pba, density=T,
-		parameters=c('se.a', 'se.b', 'sp.a', 'sp.b'))
-{
-	# Melt data into long-form
-	data <- melt(pba$bias.tables)
-	columns <- which(names(data) %in% c('variable', 'value', 'L1', 'L2', 'L3'))
-	data <- data[ , columns]
-	
-	
-	data <- subset(data, L2 == 'misclassification' & variable %in% parameters)
-	
-	p1 <- ggplot(data, aes(x=value)) + facet_grid(variable~L1)
-	
-	# Density
-	p2 <- p1 + geom_density() 
-	
-	# Histogram
-	p3 <- p1 + geom_histogram()
-	
-	if (density)
-	{
-		return(p2)
-	} else
-	{
-		return(p3)
-	}
-}
-
-
-# Confounding
-pbaPlotBiasConfounding <- function(pba, density=T, scales='free')
-{
-	# Melt data into long-form
-	data <- melt(pba$bias.tables)
-	columns <- which(names(data) %in% c('variable', 'value', 'L1', 'L2', 'L3'))
-	data <- data[ , columns]
-	
-	
-	data <- subset(data, L2 == 'confounding' & !is.na(value))
-	
-	# Define faet object
-	facet <- facet_grid(variable~L3, scales=scales)
-	
-	## p1 and p0
-	plot1 <- ggplot(subset(data, variable %in% c('p1', 'p0')), aes(x=value)) + 
-			facet
-	
-	# Density
-	plot1.density <- plot1 + geom_density() 
-	
-	# Histogram
-	plot1.histogram <- plot1 + geom_histogram()
-	
-	## rr and rd
-	plot2 <- ggplot(subset(data, variable %in% c('rr', 'rd')), aes(x=value)) + 
-			facet
-	
-	# Density
-	plot2.density <- plot2 + geom_density() 
-	
-	# Histogram
-	plot2.histogram <- plot2 + geom_histogram()
-	
-	
-	if (density)
-	{
-		plot.result <- list(plot1.density, plot2.density)
-	} else
-	{
-		plot.result <- list(plot1.histogram, plot2.histogram)
-	}
-	
-	return(plot.result)
-}
-
-
-
-# Plot distribution of simulated estimates
-pbaPlotEstimates <- function(pba, density=T, exp=F, adjust=1, binwidth=NULL,
-		scales='free', variables=NULL)
-{
-	if (!is.null(variables))
-	{
-		data <- pba$coefficients.hat.random[variables]
-	}
-	
-	if (is.null(variables))
-	{
-		data <- pba$coefficients.hat.random
-	}
-	
-	# Apply exp() transformation
-	if (exp)
-	{
-		data <- llply(data, function(x)
-				{
-					exp(x)
-				})
-	}
-	
-	# Histogram
-	if (!density)
-	{
-		data <- melt(data)
-		
-		xlim <- quantile(data$value, c(0.01, 0.99)) # Trim outliers
-		p1 <- ggplot(data, aes(x=value))
-		p2 <- p1 + xlim(xlim) +	facet_grid(L1~., scales=scales)
-		plot <- p2 + geom_histogram(binwidth=binwidth)
-	}
-	
-	# Density
-	if (density)
-	{
-		data <- ldply(data, function(x)
-				{
-					q.low <- quantile(x, 0.01) # Trim off lower outliers
-					q.high <- quantile(x, 0.99) # Trim off upper outliers
-					result <- density(x[x > q.low & x < q.high], adjust=adjust) # Density
-					lower <- as.numeric(quantile(x, 0.025))
-					upper <- as.numeric(quantile(x, 0.975))
-					data.frame(x=result$x, y=result$y, lower=lower, 
-							upper=upper)
-				})
-		
-		p1 <- ggplot(data, aes(x=x, y=y))
-		p2 <- p1 + geom_line()
-		ribbon <- geom_ribbon(data=subset(data, x >= lower & x <= upper), 
-				aes(ymax=y), ymin=0, alpha=0.5)
-		plot <- p2 + ribbon	
-		
-		# Scales and facets
-		plot <- plot + scale_y_continuous("density") +
-				scale_x_continuous("estimate") +
-				facet_grid(.id~., scales=scales)
-	}
-	
-	# Transform x axis if exp
-	if (exp)
-	{
-		plot <- plot + scale_x_log(name="estimate") 
-	}					 					 
-	
-	# Return plot
-	return(plot)
-}
 
 
 
 
-# Funciton to generate bias tables from pba.variables
+
+# Funciton to generate bias tables from pba.variables object
 pbaBiasTables <- function(pba.variables, iter)
 {
 	results <- list()
@@ -947,18 +866,35 @@ pbaAddIter <- function(x, iter)
 }
 
 
-
+#' @param pba A \code{pba} pbject.
+#' @param transformation (optional) A character string naming a function to 
+#' apply to the coefficients. If using a function that transforms the 
+#' coefficients to a multiplicative scale, be sure to specify the \code{scale} 
+#' argument accordingly.
+#' @param scale A character string of either \code{"additive"} or 
+#' \code{"multiplicative"}. If \code{"additive"}, precision will be calculated 
+#' the upper confidience level minus the lower confidence level. If 
+#' \code{"multiplicative"}, the precision will be calculated as the upper 
+#' confidence level divided by the lower confidence interval. Precision is 
+#' calculated after any transformations.
+#' @param alpha Alpha level used for determining confidence limits.
+#' @param ... (optional) Additional arguments to pass to the 
+#' \code{transformation} function, if specified.
+#' 
+#' @S3method print pba
+#' @rdname pba
+#' @export
+#' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
 
 # Create summary list of observed, bias adjusted, and bias and random
 # error adjusted
-pbaSummary <- function(pba, scale="additive", transformation=NULL, ...)
+summary.pba <- function(pba, transformation=NULL, scale="additive", alpha=0.05, ...)
 {
 	
 	model <- pba$model
 	coefficients.star <- pba$coefficients.star
 	coefficients.hat <- pba$coefficients.hat
 	coefficients.hat.random <- pba$coefficients.hat.random
-	alpha <- pba$alpha
 	
 	# Create summary list to store results
 	summary <- list()
@@ -1012,9 +948,10 @@ pbaSummary <- function(pba, scale="additive", transformation=NULL, ...)
 	if (!is.null(transformation))
 	{
 		summary <- lapply(summary, function(x)
-		{
-			x[,-4] <- do.call(transformation, args=list(x[,-4], ...))
-		})
+				{
+					x[,-4] <- do.call(transformation, args=list(x[,-4], ...))
+					return(x)
+				})
 	}
 	
 	# Calculate precision
@@ -1023,7 +960,7 @@ pbaSummary <- function(pba, scale="additive", transformation=NULL, ...)
 		summary <- lapply(summary, function(x)
 				{
 					x$precision <- x[,3] - x[,2]
-					return(x)
+					return(x[ , c(1,2,3,5,4)])
 				})
 	}
 	
@@ -1032,7 +969,7 @@ pbaSummary <- function(pba, scale="additive", transformation=NULL, ...)
 		summary <- lapply(summary, function(x)
 				{
 					x$precision <- x[,3] / x[,2]
-					return(x)
+					return(x[ , c(1,2,3,5,4)])
 				})
 	}
 	
@@ -1041,31 +978,6 @@ pbaSummary <- function(pba, scale="additive", transformation=NULL, ...)
 	return(summary)
 }
 
-
-
-# Function to create a define bias of a variable
-pbaVariable <- function(variable, # Character name of variable 
-		misclassification = list(se.a.distr=NULL, sp.a.distr=NULL, 
-				se.b.distr=NULL, sp.b.distr=NULL,
-				se.cor=NULL, sp.cor=NULL),
-		selection         = list(s.a1.distr=NULL, s.a0.distr=NULL, 
-				s.b1.distr=NULL, s.b0.distr=NULL,
-				s.1.cor=NULL, s.0.cor=NULL,
-				or=NULL),
-		confounding       = list(confounder=list(p1.distr=NULL, p0.distr=NULL, 
-						rr.distr=NULL, rd.distr=NULL,
-						name=NULL))
-)
-{											
-	result <- list()
-	result[[variable[[1]]]] <- list(variable=variable, 
-			misclassification=misclassification, 
-			selection=selection,
-			confounding=confounding)
-	
-	class(result) <- "pba.variables"
-	return(result)	
-}
 
 
 
@@ -1135,6 +1047,18 @@ pbaIterateSelection <- function(model, model.original=NULL, bias.tables, iter)
 }
 
 
+#' Function to define distributions for bias parameters.
+#' 
+#' @param distr A character vector of length one naming a random generation 
+#' ditribution.
+#' @param args Additional arguments to be passed to the distr function. The 
+#' argument \code{n} does not need to be specified, as it will be autumatically 
+#' added when appropriate in subsequent functions.
+#' 
+#' @return An object of class \code{pba.distr}.
+#' 
+#' @export 
+#' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
 
 # Function to create a pba distribution object
 pbaDistr <- function(distr, args)
@@ -1226,11 +1150,6 @@ pbaCorrectConfounding <- function(p, distr, args)
 }
 
 
-# Summary method for pba objects
-summary.pba <- function(x, ...)
-{
-	pbaSummary(x, ...)
-}
 
 
 # Print method for pba objects
@@ -1266,21 +1185,21 @@ print.pba.variables <- function(x, ...)
 		break()
 	}
 	cat(paste("\nA pba.variables object describing bias parameters for the following
-		variable", variables, "\n", sep=""))
+							variable", variables, "\n", sep=""))
 	for (i in names(x))
 	{
 		cat(paste("\nVariable ", i, ":\n", sep=""))
 		if(!is.null(x[[i]]$misclassification[[1]]))
 		{
 			cat("\tMisclassification with:\n")
-				cat(paste("\t\tSensitivity among cases distribution of", 
-					x[[i]]$misclassification$se.a.distr$distr, "\n"))
-				cat(paste("\t\tSensitivity among non-cases distribution of", 
-								x[[i]]$misclassification$se.b.distr$distr, "\n"))
-				cat(paste("\t\tSpecificity among cases distribution of", 
-								x[[i]]$misclassification$sp.a.distr$distr, "\n"))
-				cat(paste("\t\tSpecificity among non-cases distribution of", 
-								x[[i]]$misclassification$sp.b.distr$distr, "\n"))		
+			cat(paste("\t\tSensitivity among cases distribution of", 
+							x[[i]]$misclassification$se.a.distr$distr, "\n"))
+			cat(paste("\t\tSensitivity among non-cases distribution of", 
+							x[[i]]$misclassification$se.b.distr$distr, "\n"))
+			cat(paste("\t\tSpecificity among cases distribution of", 
+							x[[i]]$misclassification$sp.a.distr$distr, "\n"))
+			cat(paste("\t\tSpecificity among non-cases distribution of", 
+							x[[i]]$misclassification$sp.b.distr$distr, "\n"))		
 		}
 		if(!is.null(x[[i]]$selection[[1]]))
 		{
@@ -1306,7 +1225,7 @@ print.pba.variables <- function(x, ...)
 				if(!is.null(x[[1]]$confounding[[j]]$rr.distr))
 				{
 					cat(cat(paste("\t\tRelative risk of confounding distribution of",
-								x[[i]]$confounding[[j]]$rr.distr$distr, "\n")))
+											x[[i]]$confounding[[j]]$rr.distr$distr, "\n")))
 				}
 				if(!is.null(x[[1]]$confounding[[j]]$rd.distr))
 				{
@@ -1314,7 +1233,414 @@ print.pba.variables <- function(x, ...)
 											x[[i]]$confounding[[j]]$rr.distr$distr, "\n")))
 				}
 			}
-		}
-			
+		}			
 	}
+}
+
+
+
+# pba plot method
+pbaPlotBias <- function(pba, density=T, scales='free', print=T, types=NULL)
+{
+	# Which biases are defined in bias.tables
+	
+	
+	# Choose types of bias to plot
+	if (is.null(types))
+	{
+		types <- laply(pba$bias.tables, function(x)
+				{
+					names(x)
+				})
+		types <- unique(types)
+	}
+	
+	# Melt data into long-form
+	data <- melt(pba$bias.tables)
+	columns <- which(names(data) %in% c('variable', 'value', 'L1', 'L2', 'L3'))
+	data <- data[ , columns]
+	
+	# Create plots list to store plots
+	plots <- list()
+	
+	# Misclassification
+	if ('misclassification' %in% types)
+	{
+		plots$misclassification <- pbaPlotMisclassification(data = data, 
+				density = density, scales = scales)
+	}
+	
+	# Selection
+	if ('selection' %in% types)
+	{
+		plots$selection <- pbaPlotSelection(data = data, 
+				density = density, scales = scales)
+	}
+	
+	# Confounding proportions
+	if ('confounding' %in% types)
+	{
+		plots$confounding.proportions <- pbaPlotConfoundingProportions(data = data, 
+				density = density, scales = scales)
+	}
+	
+	# Confounding risks
+	if ('confounding' %in% types)
+	{
+		plots$confounding.risks <- pbaPlotConfoundingRisks(data = data, 
+				density = density, scales = scales)
+	}
+	
+	# Define viewports
+	#vps <- list()
+	#vps$misclassification <- viewport(width = 1/2, height = 1, x = 1/4, y = 1/2)
+	#vps$confounding.proportions <- viewport(width = 1/2, height = 2/3, x =3/4, y = 4/6)
+	#vps$confounding.risks <- viewport(width = 1/2, height = 1/3, x =3/4, y = 1/6)
+	
+	# Print plots with viewports
+	if (print)
+	{
+		print(plot.misclassification, vp = vp.misclassification)
+		print(plot.confounding.proportions, vp = vp.confounding.proportions)
+		print(plot.confounding.risks, vp = vp.confounding.risks)
+	}
+	
+	
+	# Return plots and viewports
+	#result <- list(plots=plots, vps=vps)
+	return(plots)
+}
+
+
+# Misclassification
+pbaPlotMisclassification <- function(pba=NULL, data=NULL, density=T,
+		parameters=c('se.a', 'se.b', 'sp.a', 'sp.b'), title='Misclassification', 
+		scales='free', L2='misclassification')
+{
+	if (is.null(data))
+	{
+		# Melt data into long-form
+		data <- melt(pba$bias.tables)
+		columns <- which(names(data) %in% c('variable', 'value', 'L1', 'L2', 'L3'))
+		data <- data[ , columns]
+	}
+	
+	# Subset misclassification data and parameters
+	data <- subset(data, L2 == L2 & variable %in% parameters)
+	
+	# Define facet object
+	facet <- facet_grid(variable~L1, scales = scales)
+	
+	# Define ggplot
+	plot1 <- ggplot(data, aes(x=value)) + facet
+	
+	# Density
+	plot1.density <- plot1 + geom_density() 
+	
+	# Histogram
+	plot1.histogram <- plot1 + geom_histogram()
+	
+	if (density)
+	{
+		plot.result <- plot1.density
+	} else
+	{
+		plot.result <- plot1.histogram
+	}
+	
+	return(plot.result + opts(title = title))
+}
+
+
+# Confounding proportions
+pbaPlotConfoundingProportions <- function(pba=NULL, data=NULL,
+		parameters=c('p1', 'p0'), density=T, title='Confounding (proportions)', 
+		scales='free', L2='confounding')
+{
+	if (is.null(data))
+	{
+		# Melt data into long-form
+		data <- melt(pba$bias.tables)
+		columns <- which(names(data) %in% c('variable', 'value', 'L1', 'L2', 'L3'))
+		data <- data[ , columns]
+	}
+	
+	# Subset confounding data and proportions data
+	data <- subset(data, L2 == L2 & !is.na(value) & 
+					variable %in% parameters)
+	
+	# Define faet object
+	facet <- facet_grid(variable~L3, scales=scales)
+	
+	## p1 and p0
+	plot1 <- ggplot(data, aes(x=value)) + facet
+	
+	# Density
+	plot1.density <- plot1 + geom_density() 
+	
+	# Histogram
+	plot1.histogram <- plot1 + geom_histogram()
+	
+	if (density)
+	{
+		plot.result <- plot1.density
+	} else
+	{
+		plot.result <- plot1.histogram
+	}
+	
+	return(plot.result + opts(title = title))
+}
+
+
+# Confounding risks
+pbaPlotConfoundingRisks <- function(pba=NULL, data=NULL,
+		parameters=c('rr', 'rd'), density=T, title='Confounding (relative risks)',
+		scales='free', L2='confounding')
+{
+	if (is.null(data))
+	{
+		# Melt data into long-form
+		data <- melt(pba$bias.tables)
+		columns <- which(names(data) %in% c('variable', 'value', 'L1', 'L2', 'L3'))
+		data <- data[ , columns]
+	}
+	
+	# Subset confounding data and risk data
+	data <- subset(data, L2 == L2 & !is.na(value) & 
+					variable %in% parameters)
+	
+	# Define faet object
+	facet <- facet_grid(variable~L3, scales=scales)
+	
+	## rr and rd
+	plot1 <- ggplot(data, aes(x=value)) + facet
+	
+	# Density
+	plot1.density <- plot1 + geom_density() 
+	
+	# Histogram
+	plot1.histogram <- plot1 + geom_histogram()
+	
+	if (density)
+	{
+		plot.result <- plot1.density
+	} else
+	{
+		plot.result <- plot1.histogram
+	}
+	
+	return(plot.result + opts(title = title))
+}
+
+
+# Plot distribution of simulated estimates
+pbaPlotEstimates <- function(pba=NULL, data=NULL, density=T, exp=F, adjust=1, 
+		binwidth=NULL, scales='free', variables=NULL)
+{
+	if (!is.null(variables))
+	{
+		data <- pba$coefficients.hat.random[variables]
+	}
+	
+	if (is.null(variables))
+	{
+		data <- pba$coefficients.hat.random
+	}
+	
+	# Apply exp() transformation
+	if (exp)
+	{
+		data <- llply(data, function(x)
+				{
+					exp(x)
+				})
+	}
+	
+	# Histogram
+	if (!density)
+	{
+		data <- melt(data)
+		
+		xlim <- quantile(data$value, c(0.01, 0.99)) # Trim outliers
+		p1 <- ggplot(data, aes(x=value))
+		p2 <- p1 + xlim(xlim) +	facet_grid(L1~., scales=scales)
+		plot <- p2 + geom_histogram(binwidth=binwidth)
+	}
+	
+	# Density
+	if (density)
+	{
+		data <- ldply(data, function(x)
+				{
+					q.low <- quantile(x, 0.01) # Trim off lower outliers
+					q.high <- quantile(x, 0.99) # Trim off upper outliers
+					result <- density(x[x > q.low & x < q.high], adjust=adjust) # Density
+					lower <- as.numeric(quantile(x, 0.025))
+					upper <- as.numeric(quantile(x, 0.975))
+					data.frame(x=result$x, y=result$y, lower=lower, 
+							upper=upper)
+				})
+		
+		p1 <- ggplot(data, aes(x=x, y=y))
+		p2 <- p1 + geom_line()
+		ribbon <- geom_ribbon(data=subset(data, x >= lower & x <= upper), 
+				aes(ymax=y), ymin=0, alpha=0.5)
+		plot <- p2 + ribbon	
+		
+		# Scales and facets
+		plot <- plot + scale_y_continuous("density") +
+				scale_x_continuous("estimate") +
+				facet_grid(.id~., scales=scales)
+	}
+	
+	# Transform x axis if exp
+	if (exp)
+	{
+		plot <- plot + scale_x_log(name="estimate") 
+	}					 					 
+	
+	# Return plot
+	return(plot)
+}
+
+
+
+# Labeller
+pbaLabeller <- function(x, y)
+{
+	if (y == 'se.a') c('Sensitivity', 'Sensitivity', 'Specificity', 'Specificity') 
+	else y
+}
+
+pbaLabeller <- function(x, y)
+{
+	if (any(y %in% c('se.a', 'se.b', 'sp.a', 'sp.b')))
+	{
+		print(y)
+		y[which(test=='se.a')] <- 'Sensitivity Outcome+'
+		y[which(test=='se.b')] <- 'Sensitivity Outcome-'
+		y[which(test=='sp.a')] <- 'Specificty Outcome+'
+		y[which(test=='sp.b')] <- 'Specificity Outcome-'
+	}
+	
+	return(y)
+}
+
+
+
+# Selection
+pbaPlotSelection <- function(pba=NULL, data=NULL, density=T,
+		parameters=c('s.a1', 's.a0', 's.b1', 's.b0'), title='Selection', 
+		scales='free', L2='selection')
+{
+	pbaPlotMisclassification(pba = pba, data = data, density = density,
+			parameters = parameters, title = title, scales = scales, L2 = L2)
+}
+
+
+#' Random generation from a trapezoidal distribution.
+#' @param n Number of observations. If length(n) > 1, the length is taken to be the number required.
+#' @param min Lower bound of the trapezoid.
+#' @param mode1 Lower mode of the trapezoid.
+#' @param mode2 Upper mode of the trapezoid.
+#' @param max Upper bound of the trapezoid.
+#' 
+#' @return A vector numbers randomly generated from the trapezoidal distribution.
+#' @export 
+#' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
+#' @references Adapted from Matthew Fox and colleagues' SAS macro SENSITIVITY ANALYSIS MISCLASSIFICATION MACRO version 1.1.
+#' Available: \link{http://sites.google.com/site/biasanalysis/}
+
+rtrapezoid <- function (n, min = 0, mode1 = 0.33, mode2 = 0.67, max = 1) 
+{
+	# Check arguments are valid
+	if (length(n) > 1) 
+		n <- length(n)
+	if (n < 1 | is.na(n)) 
+		stop(paste("invalid argument: n =", n))
+	n <- floor(n)
+	if (any(is.na(c(min, mode1, mode2, max)))) 
+		return(rep(NaN, times = n))
+	if (min > max | min > mode1 | min > mode2 | mode1 > max | mode2 > max |
+			mode1 > mode2) 
+		return(rep(NaN, times = n))
+	if (any(is.infinite(c(min, mode1, mode2, max)))) 
+		return(rep(NaN, times = n))
+	
+	# Generate random numbers
+	p <- runif(n)
+	r <- (p * (max + mode2 - min - mode1) + (min + mode1)) / 2
+	
+	# Adjust if random number is less than mode1
+	rs.lt.mode1 <- which(r < mode1)
+	r[rs.lt.mode1] <- min + sqrt((mode1 - min) * (2 * r[rs.lt.mode1] - min - mode1))
+	
+	# Adjust if random number is greater than mode2
+	rs.gt.mode2 <- which(r > mode2)
+	r[rs.gt.mode2] <- max - sqrt(2 * (max - mode2) * (r[rs.gt.mode2] - mode2))
+	
+	return(r)
+}
+
+
+#' Define bias parameters
+#' 
+#' @param variable A character vector naming the variable upon which the bias 
+#' is effecting.
+#' @param misclassification A list describing misclassification bias. The list 
+#' consists of the following parameters:
+#' \item {se.a.distr}{A pba.distr object defining the sensitivity among cases.}
+#' \item {sp.a.distr}{A pba.distr object defining the specificity among cases.}
+#' \item {se.b.distr}{A pba.distr object defining the sensitivity among 
+#' non-cases.}
+#' \item {sp.b.distr}{A pba.distr object defining the sensitivity among 
+#' non-cases.}
+#' \item {se.cor}{Correlation between sensitivity among cases and non-cases. 
+#' Correlation of 1 indicates non-differential selection bias. Correlation of 
+#' 0 indicates independent differential selection bias. Correlation less than 
+#' 1 but greater than 0 indicates partial differential selection bias.}
+#' \item {se.cor}{Correlation between specificity among cases and non-cases. 
+#' Correlation of 1 indicates non-differential selection bias. Correlation of 0 
+#' indicates independent differential selection bias. Correlation less than 1 
+#' but greater than 0 indicates partial differential selection bias.}
+#' @param selection A list describing selection bias. The list consists of the 
+#' following parameters:
+#' \item {s.a1.distr}{A pba.distr object defining selection among exposed cases.}
+#' \item {s.a0.distr}{A pba.distr object defining selection among non-exposed 
+#' cases.}
+#' \item {s.b1.distr}{A pba.distr object defining selection among exposed 
+#' non-cases.}
+#' \item {s.b0.distr}{A pba.distr object defining selection among non-exposed 
+#' non-cases.}
+#' @param confounding A list containing one or more lists describing unmeasured 
+#' confounding bias.  The confounder bias lists contain the following parameters:
+#' \item {p1.distr}{A pba.distr object defining the probability of the 
+#' unmeasured confounder among the exposed.}
+#' \item {p0.distr}{A pba.distr object defining the probability of the 
+#' unmeasured confounder among the non-exposed.}
+#' \item {rr.distr}{(optional) A pba.distr object defining the relative risk 
+#' association between the confounder and the outcome. rr.distr or or.distr must 
+#' be defined. If both are defined, rr.distr is used instead of or.distr.}
+#' \item {or.distr}{(optional) A pba.distr object defining the odds ratio 
+#' association between the confounder and the outcome. rr.distr or or.distr 
+#' must be defined. If both are defined, rr.distr is used instead of or.distr.}
+#' 
+#' @return The pba function returns an object of class \code{pba.variables}.
+#' 
+#' @export 
+#' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
+
+# Function to create a define bias of a variable
+pbaVariable <- function(variable, misclassification, selection,
+		confounding)
+{											
+	result <- list()
+	result[[variable[[1]]]] <- list(variable=variable, 
+			misclassification=misclassification, 
+			selection=selection,
+			confounding=confounding)
+	
+	class(result) <- "pba.variables"
+	return(result)	
 }
