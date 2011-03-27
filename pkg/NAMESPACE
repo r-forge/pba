@@ -1,9 +1,13 @@
-useDynLib(pba, .registration = TRUE)
+export(expit, logit, pba, pbaDistr, rtrapezoid, pbaVariable, 
+	summary.pba, print.pba, print.pba.variables, pbaPlotConfoundingProportions, 
+	pbaPlotConfoundingRisks, 
+	pbaPlotMisclassification, pbaPlotSelection, plotBias, plotEstimates,
+	plot.pba)	
 
-export(expit, logit, pba, pbaBackCalculate, pbaBiasCor, pbaBiasCorCheck,
-	   pbaDistr, pbaIterate, pbaMisclassification, pbaMisclassificationCheck,
-	   pbaPlotBias, pbaPlotEstimates, pbaSummary, pbaVariable, print.pba)	
+S3method(print, pba)
+S3method(plot, pba)
 
 import(plyr)
 import(ggplot2)
-import(QRMlib)
+import(reshape)
+import(roxygen)
