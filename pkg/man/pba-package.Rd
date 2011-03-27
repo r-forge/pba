@@ -22,6 +22,7 @@ BugReports: \tab https://r-forge.r-project.org/tracker/?func=add&group_id=988&at
 LazyLoad: \tab yes\cr
 LazyData: \tab yes\cr
 }
+
 pba: Probabilistic Bias Analysis
 
 The pba package performs probabilistic bias analyses, with methods are 

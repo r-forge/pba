@@ -7,10 +7,7 @@
 ## Recreate Fox example analysis
 
 # Require packages
-require('plyr')
-require('reshape')
-require('ggplot2')
-require('QRMlib')
+require('pba')
 
 # Set working directory
 directory <- "C:/Users/jthetzel/Research/pba"
@@ -19,12 +16,12 @@ directory <- "/home/jthetzel/Research/pba/"
 setwd(directory)
 
 # Load pba function
-source('C:/Users/jthetzel/Research/pba/pkg/R/pba.R')
-source('C:/Users/jthetzel/Research/pba/pkg/R/plots.R')
-source('C:/Users/jthetzel/Research/pba/pkg/R/rtrapezoid.R')
-source('/home/jthetzel/Research/pba/pkg/R/pba.R')
-source('/home/jthetzel/Research/pba/pkg/R/plots.R')
-source('/home/jthetzel/Research/pba/pkg/R/rtrapezoid.R')
+#source('C:/Users/jthetzel/Research/pba/pkg/R/pba.R')
+#source('C:/Users/jthetzel/Research/pba/pkg/R/plots.R')
+#source('C:/Users/jthetzel/Research/pba/pkg/R/rtrapezoid.R')
+#source('/home/jthetzel/Research/pba/pkg/R/pba.R')
+#source('/home/jthetzel/Research/pba/pkg/R/plots.R')
+#source('/home/jthetzel/Research/pba/pkg/R/rtrapezoid.R')
 
 # Set seed for reproducibility
 set.seed(1234)
@@ -65,32 +62,30 @@ exp.differential <- pbaVariable(variable='exp',
 												 sp.cor = 0.8))										 
 							 
 # Perform pba analysis, non-differential
-pba1 <- pba(glm1, exp.non.differential, iter=100, alpha=0.05)
-a <-summary(pba1, transformation="exp", scale="multiplicative") 
+pba1 <- pba(glm1, exp.non.differential, iter=100)
+summary(pba1, transformation="exp", scale="multiplicative") 
 													# Original report in Fox:
 													# Odds ratio (95% CL): 2.4 (1.2, 14)
-pbaPlotBiasMisclassification(pba1)
-pbaPlotBias(pba1)
-pbaPlotEstimates(pba1)
-pbaPlotEstimates(pba1, variables=c(-1))
-pbaPlotEstimates(pba1, density=F)
-a <- pbaPlotEstimates(pba1, density=F, exp=T)
+plotBias(pba1)
+plotEstimates(pba1, variables=c(-1))
+plotEstimates(pba1, density=F)
+a <- plotEstimates(pba1, density=F, exp=T)
 a + xlim(0,5)
-pbaPlotEstimates(pba1, density=F, binwidth=0.1)
-pbaPlotEstimates(pba1, exp=T)
+plotEstimates(pba1, density=F, binwidth=0.1)
+plotEstimates(pba1, exp=T)
 
 
 # Perform pba analysis, differential
-pba2 <- pba(glm1, exp.differential, iter=100, alpha=0.05)
-lapply(summary(pba2), exp) # Original report in Fox:
+pba2 <- pba(glm1, exp.differential, iter=100)
+summary(pba2, transformation="exp", scale="multiplicative")  # Original report in Fox:
 													# Odds ratio (95% CL): 3.6 (1.6, 52)
-pbaPlotBias(pba2)
-pbaPlotBias(pba2, density=T)
-pbaPlotEstimates(pba2)
-pbaPlotEstimates(pba2, adjust=0.8)
-pbaPlotEstimates(pba2, exp=T)
-pbaPlotEstimates(pba2, exp=T, adjust=0.6)
-pbaPlotEstimates(pba2, density=F)
+plotBias(pba2)
+plotBias(pba2, density=F)
+plotEstimates(pba2)
+plotEstimates(pba2, adjust=0.8)
+plotEstimates(pba2, exp=T)
+plotEstimates(pba2, exp=T, adjust=0.6)
+plotEstimates(pba2, density=F)
 
 
 
@@ -116,27 +111,26 @@ exp2 <- pbaVariable(variable='exp2',
 
 
 # Perform bias analysis with two bias variables
-pba3 <- pba(glm2, c(exp.non.differential, exp2), iter=100, alpha=0.05)
-lapply(summary(pba3), exp)
-pbaPlotBias(pba3)
-pbaPlotBias(pba3, density=F)
-pbaPlotEstimates(pba3)
-pbaPlotEstimates(pba3, density=F)
-pbaPlotEstimates(pba3, exp=T)
+pba3 <- pba(glm2, c(exp.non.differential, exp2), iter=100)
+summary(pba3, transformation="exp", scale="multiplicative") 
+plotBias(pba3)
+p[lotBias(pba3, density=F)
+plotEstimates(pba3)
+plotEstimates(pba3, density=F)
+plotEstimates(pba3, exp=T)
 
 # Specify poisson model
 glm3 <- glm(case ~ exp + exp2, data=example, family=poisson())
 
 # Perform bias analysis with two bias variables on poisson model
-pba4 <- pba(glm3, c(exp.differential, exp2), iter=100, alpha=0.05)
-lapply(summary(pba4), exp)
-summary(pba4)
-pbaPlotBias(pba4)
-pbaPlotBias(pba4, density=T)
-pbaPlotEstimates(pba4)
-pbaPlotEstimates(pba4, density=F)
-pbaPlotEstimates(pba4, exp=T)
-pbaPlotEstimates(pba4, exp=T, variables=c(-1))
+pba4 <- pba(glm3, c(exp.differential, exp2), iter=100)
+summary(pba4, transformation="exp", scale="multiplicative")
+plotBias(pba4)
+plotBias(pba4, density=T)
+plotEstimates(pba4)
+plotEstimates(pba4, density=F)
+plotEstimates(pba4, exp=T)
+plotEstimates(pba4, exp=T, variables=c(-1))
 
 
 # Adjust for misclassification and selection bias
@@ -169,11 +163,11 @@ exp2.ms <- pbaVariable(variable='exp2',
 				s.b0.distr = pbaDistr('rnorm', args=list(mean=0.9, sd=0.05)))
 )
 
-pba5 <- pba(glm2, c(exp.ms, exp2.ms), iter=100, alpha=0.05)
+pba5 <- pba(glm2, c(exp.ms, exp2.ms), iter=100)
 summary(pba5, scale="multiplicative", transformation="exp")
-pbaPlotEstimates(pba5)
-pbaPlotBias(pba5, print=F)
-pbaPlotBias(pba5, print=F, types="misclassification")
+plotEstimates(pba5)
+plotBias(pba5, print=T)
+plotBias(pba5, print=T, types="misclassification")
 
 
 
