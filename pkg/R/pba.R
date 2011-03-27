@@ -44,7 +44,7 @@
 #' @import QRMlib
 #' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
 #' 
-roxygen()
+NULL
 
 
 
@@ -1238,12 +1238,33 @@ print.pba.variables <- function(x, ...)
 }
 
 
+#' Plot density ditribution of bias parameters of a pba object
+#' 
+#' @param pba A pba object.
+#' @param density Logical; if true, plots smoothed density. If false, plots
+#' histogram.
+#' @param sclaes Character string passed to ggplot. This parameter controls
+#' whether the x and y axes are free or fixed. Acceptable values are "free",
+#' "fixed", "free_x", or "free_y"
+#' @param types A character vector specifying the types of biases to plot. If
+#' NULL, the function will plot all defined biases. Acceptable values are
+#' "misclassification", "selection", and "confounding".
+#' @param print Logical; if true, function prints the plots. If false, the
+#' function only returns the plot objects in a list.
+#' 
+#' @return The plotBias function returns density plots or histograms of the
+#' distribution of bias parameters for a pba object. If print = TRUE, the
+#' function attempts to organize all plots into a single window. Individual 
+#' plots may be accessed from the returned list. plotBias internally calls
+#' pbaPlotMisclassification, pbaPlotSelection, pbaPlotConfoundingProportions,
+#' and pbaPlotConfoundingRisks.
+#' 
+#' @export 
+#' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
 
 # pba plot method
-pbaPlotBias <- function(pba, density=T, scales='free', print=T, types=NULL)
+plotBias <- function(pba, density=T, scales='free', types=NULL, print=T)
 {
-	# Which biases are defined in bias.tables
-	
 	
 	# Choose types of bias to plot
 	if (is.null(types))
@@ -1252,8 +1273,9 @@ pbaPlotBias <- function(pba, density=T, scales='free', print=T, types=NULL)
 				{
 					names(x)
 				})
-		types <- unique(types)
 	}
+	
+	types <- unique(types)
 	
 	# Melt data into long-form
 	data <- melt(pba$bias.tables)
@@ -1291,24 +1313,55 @@ pbaPlotBias <- function(pba, density=T, scales='free', print=T, types=NULL)
 				density = density, scales = scales)
 	}
 	
-	# Define viewports
-	#vps <- list()
-	#vps$misclassification <- viewport(width = 1/2, height = 1, x = 1/4, y = 1/2)
-	#vps$confounding.proportions <- viewport(width = 1/2, height = 2/3, x =3/4, y = 4/6)
-	#vps$confounding.risks <- viewport(width = 1/2, height = 1/3, x =3/4, y = 1/6)
 	
 	# Print plots with viewports
 	if (print)
 	{
-		print(plot.misclassification, vp = vp.misclassification)
-		print(plot.confounding.proportions, vp = vp.confounding.proportions)
-		print(plot.confounding.risks, vp = vp.confounding.risks)
+		# Set up viewports
+		n <- length(types)
+		vp <- list()
+		j <- 1
+		for(i in types)
+		{
+			vp[[i]] <- viewport(x = (j - 0.5) / n, width = 1 / n, 
+					just = c("centre", "centre"))
+			j <- j + 1
+		}
+		
+		# Print plots
+		grid.newpage()
+		pushViewport(viewport())
+		popViewport()
+		for(i in names(plots))
+		{
+			if (i %in% c("misclassification", "selection"))
+			{
+				pushViewport(vp[[i]])
+				grid.draw(ggplotGrob(plots[[i]]))
+				popViewport()
+			} else if (i %in% c("confounding.proportions", "confounding.risks"))
+			{
+				pushViewport(vp[['confounding']])
+				if (i == "confounding.proportions")
+				{
+					pushViewport(viewport(y = 1/3, height = 2/3, just=c("centre", "bottom")))
+					grid.draw(ggplotGrob(plots[[i]]))
+					popViewport()
+				}
+				if ( i == "confounding.risks")
+				{
+					pushViewport(viewport(y = 1/3, height = 1/3, just=c("centre", "top")))
+					grid.draw(ggplotGrob(plots[[i]]))
+					popViewport()
+				}
+				popViewport()
+			}
+		}		
 	}
-	
 	
 	# Return plots and viewports
 	#result <- list(plots=plots, vps=vps)
-	return(plots)
+	invisible(plots)
 }
 
 
@@ -1434,9 +1487,36 @@ pbaPlotConfoundingRisks <- function(pba=NULL, data=NULL,
 }
 
 
+
+#' Plot density ditribution of estimates after adjusting for bias
+#' 
+#' @param pba A pba object.
+#' @param data ?
+#' @param exp Logical; if true, estimates are exponentiated. 
+#' @param density Logical; if true, plots smoothed density. If false, plots
+#' histogram.
+#' @param sclaes Character string passed to ggplot. This parameter controls
+#' whether the x and y axes are free or fixed. Acceptable values are "free",
+#' "fixed", "free_x", or "free_y"
+#' @param types A character vector specifying the types of biases to plot. If
+#' NULL, the function will plot all defined biases. Acceptable values are
+#' "misclassification", "selection", and "confounding".
+#' @param print Logical; if true, function prints the plots. If false, the
+#' function only returns the plot objects in a list.
+#' 
+#' @return The plotBias function returns density plots or histograms of the
+#' distribution of bias parameters for a pba object. If print = TRUE, the
+#' function attempts to organize all plots into a single window. Individual 
+#' plots may be accessed from the returned list. plotBias internally calls
+#' pbaPlotMisclassification, pbaPlotSelection, pbaPlotConfoundingProportions,
+#' and pbaPlotConfoundingRisks.
+#' 
+#' @export 
+#' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
+
 # Plot distribution of simulated estimates
-pbaPlotEstimates <- function(pba=NULL, data=NULL, density=T, exp=F, adjust=1, 
-		binwidth=NULL, scales='free', variables=NULL)
+plotEstimates <- function(pba=NULL, data=NULL, density=T, exp=F, adjust=1, 
+		binwidth=NULL, scales='free', variables=NULL, print = T)
 {
 	if (!is.null(variables))
 	{
@@ -1500,8 +1580,14 @@ pbaPlotEstimates <- function(pba=NULL, data=NULL, density=T, exp=F, adjust=1,
 		plot <- plot + scale_x_log(name="estimate") 
 	}					 					 
 	
+	# Print plot
+	if (print)
+	{
+		print(plot)
+	}
+	
 	# Return plot
-	return(plot)
+	invisible(plot)
 }
 
 
@@ -1632,8 +1718,8 @@ rtrapezoid <- function (n, min = 0, mode1 = 0.33, mode2 = 0.67, max = 1)
 #' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
 
 # Function to create a define bias of a variable
-pbaVariable <- function(variable, misclassification, selection,
-		confounding)
+pbaVariable <- function(variable, misclassification = NULL, 
+		selection = NULL, confounding = NULL)
 {											
 	result <- list()
 	result[[variable[[1]]]] <- list(variable=variable, 
@@ -1643,4 +1729,21 @@ pbaVariable <- function(variable, misclassification, selection,
 	
 	class(result) <- "pba.variables"
 	return(result)	
+}
+
+
+
+
+
+
+#' @aliases plotEstimates
+#' @S3method plot pba
+
+# Plot method for pba objects. Passes object to plotEstimates
+plot.pba <- function(pba=NULL, data=NULL, density=T, exp=F, adjust=1, 
+		binwidth=NULL, scales='free', variables=NULL, print = T)
+{
+	plotEstimates(pba = pba, data = data, density = density, exp = exp,
+			adjust = adjust, binwidth = binwidth, scales = scales,
+			variables = variables, print = print)
 }
