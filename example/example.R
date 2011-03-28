@@ -29,6 +29,8 @@ set.seed(1234)
 # Read in Fox's example set
 example <- read.csv("C:/Users/jthetzel/Research/pba/other/SAS/example.sas7bdat.csv")
 example <- read.csv("/home/jthetzel/Research/pba/other/SAS/example.sas7bdat.csv")
+data(LungCancerResins)
+example <- LungCancerResins
 
 # Specify model
 glm1 <- glm(case ~ exp, data=example, family=binomial())

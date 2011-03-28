@@ -1,0 +1,196 @@
+%
+%\VignetteIndexEntry{Probabilistic Bias Analysis Examples}
+%\VignetteDepends{pba}
+%\VignetteKeywords{}
+%\VignettePackage{pba}
+ 
+\documentclass[a4paper]{article}
+\usepackage{times}
+\usepackage{hyperref}
+\usepackage[authoryear,round]{natbib}
+\usepackage{times}
+\usepackage{comment}
+\usepackage{graphicx}
+\usepackage{subfigure}
+
+% \VignetteIndexEntry{pba Example}
+
+\begin{document}
+
+<<foo,include=FALSE,echo=FALSE>>=
+options(keep.source = TRUE, width = 60)
+foo <- packageDescription("pba")
+@
+
+\newcommand{\Rfunction}[1]{{\texttt{#1}}}
+\newcommand{\Rcode}[1]{{\texttt{#1}}}
+\newcommand{\Robject}[1]{{\texttt{#1}}}
+\newcommand{\Rpackage}[1]{{\textsf{#1}}}
+\newcommand{\Rclass}[1]{{\textit{#1}}}
+
+
+\title{pba: Probabilistic Bias Analysis}
+\author{Jeremy Thoms Hetzel}
+
+\maketitle
+
+\section{Introduction}
+
+Error in the estimation of measures of effect consists of two components: 
+random error and systematic error. The scientific analysis of data has 
+historically been dominated by the quantification of random error, most often
+with hypothesis testing, p values, and confidence intervals of the 
+frequentist statistical tradition. Systematic error is largely ignored, or at
+most addressed qualitatively. While methods to quantitate systematic error
+have been published, implementation of these methods generally require 
+tailoring custom programming to individual analyses. Consequently, systematic
+error quantification has been largely inaccessible to the scientific community.
+
+Recently, methods to automate systematic error quantification have been
+developed. In a 2005 paper, Fox and colleagues describe an approach termed 
+"probabilistic bias analysis" that quantifies systematic error from 
+misclassification bias, selection bias, and bias from unmeasured confounding.
+(Int J Epidemiol. 2005 Dec;34(6):1370-6) The authors implement the methods
+using Excel spreadsheets and SAS code. Orsini adapted their code in the STATA
+package EPISENS.
+(http://nicolaorsini.altervista.org/stata/tutorial/e/episens.htm) Gustafson has
+provided R code for quantitative bias analysis in various of his publications
+(http://www.stat.ubc.ca/~gustaf/pubs.html), but a unified package does not
+exist.
+
+Briefly, probabilistic bias analysis allows for the specification of
+probability distributions that approximate an expected bias. An estimate of the
+bias is randomly sampled from the distribution and used to calculate an
+adjusted effect estimate. The process is repeated in a Monte Carlo fashion, and
+the bias-adjusted effect estimates are summarized with the median effect 
+estimate and a simulation interval (similar to the confidence interval). For 
+example, in a hypothetical study, investigators estimate the association
+between smoking and colorectal cancer. Smoking was self-reported by the study 
+subjects, and previous literature suggests that subjects misreport their 
+smoking status with a sensitivity and specificity between 85% and 95%. With
+probabilistic bias analysis, sensitivity and specificity of smoking 
+misclassification can be approximated with a triangular probability
+distribution, with a minimum of 0.85, a mode of 0.90, and a maximum of 0.95. 
+
+The purpose of the Probabilistic Bias Analysis package is to implement and
+extend the probabilistic bias analysis methodologies of Fox and colleagues
+in a convenient R package to facilitate the quantification of systematic error
+by scientists. The package will initially be limited to the quantification of
+error due to misclassification bias, selection bias, and unmeasured confounding
+by binary variables. Later, the package will be extended to allow for adjustment
+of categorical and continuous variables. The package aims to allow users to
+conveniently perform a probability bias analysis on any lm or glm object. 
+
+The project will use the resources of R-Forge to host the package's code while 
+under development. R-Forge will facilitate development of the code and allow 
+exposure of the package to other users interested in the development or use of 
+systematic bias quantification.
+
+
+
+\section{Example}
+
+The following example is taken from Lash and colleagues. 
+
+<<LoadData, echo=TRUE, results=verbatim>>=
+require(pba)
+data(LungCancerResins)
+str(LungCancerResins)
+head(LungCancerResins)
+@
+
+The estimate of the effect of resin exposure on occurence of lung cancer can be modeled by logistic regression:
+
+<<glm, echo=TRUE, results=verbatim>>=
+glm1 <- glm(case ~ exp, data=LungCancerResins, family=binomial())
+summary(glm1)
+@
+
+Accounting for random error only, the regression estimates that a true effect of resin on lung cancer. However, the model ignores any systematic error, such as misclassification of the exposure.
+
+\section{Defining bias parameters}
+The \Rpackage{pba} package supports specification of three forms of bias: misclassification, selection, and unmeasured confounding. Each type of bias is defined by a list of parameters. For example, misclassification bias is defined by sensitivity among cases, specificity among cases, sensitivity among non-cases, and specificity among non-cases. Parameters for the other biases are listed in \code{?pbaVariable}. In a simple bias analysis, each parameter would take a single numeric value, which would then be used to reverse calculate the true effect estimate from the observed effect estimate. In a probabilistic bias analysis, each parameter instead takes a distribution of values. In the \Rpackage{pba} package, these distributions are defined by objects of class \Rclass{pba.distr} using the \Rfunction{pbaDitr} function. 
+
+For example, suppose that the literature suggests that resin exposure is systematicaly misclassified with a sensitivity and specificity between 85\% and 100\%, regardless of exposure or outcome status. The probable values of sensitivity and specificity can be represented as a uniform distribution with a minimum value of 0.85 and a maximum value of 1.00.  In \Rpackage{pba}, this distribution is defined as follows:
+
+<<DefineUniformDistribution, echo=TRUE, results=verbatim>>=
+uniform <- pbaDistr(distr = "runif", args = list(min = 0.85, max = 1))
+uniform
+@
+
+The \Rcode{distr} argument defines the name of the function to use to generate the distribution (in this case the runif function), and the \Rcode{args} argument is a list containing arguments to pass to the \Rcode{distr} function. Note that the \Rcode{n} argument does not need to be specified, as it will automatically be added by the \Rfunction{pba} function later.
+
+The \Rfunction{pbaVariable} function is used to define biases effecting a variable. Using the uniform  \Rclass{pba.distr} object, an object defining bias effecting the exp variable is defined as follows:
+
+<<DefinePbaVariable, echo=TRUE, results=verbatim>>=
+exp.bias <- pbaVariable(variable='exp',
+												 misclassification = list(
+												 	se.a.distr = uniform, 
+												 	sp.a.distr = uniform,
+												 	se.b.distr = uniform,
+												 	sp.b.distr = uniform,
+												 	se.cor = 1,
+												 	sp.cor = 1))
+@
+
+The \Rcode{exp.bias} object defines misclassification of the \Rcode{exp} variable with sensitivity and specificity among cases and non-cases floowing a uniform distribution between 0.85 and 1.00. The \Rcode{se.cor} and \Rcode{sp.cor} arguments define the correlation between case and control sensitivities and specificities, respectively. Values equal to 1 describe non-differential misclassification bias, where the sensitivities (and specificities) among cases and controls will always be equal. Values less than 1 allow for increasing independence of sensitivities (and specificities) amon cases and controls, allowing for differential misclassification bias.
+
+While the \Rcode{uniform} \Rclass{pba.distr} object limits the misclassification parameters to between 0.85 and 1.00, it might be unrealistic to assume an equal probability of all values between 0.85 and 1.00. Instead, a trapezoidal distribution with a minimum of 0.85, first mode of 0.90, second mode of 0.95, and maximum of 1.00 may be more realistic. 
+
+<<DefineTrapezoidalDistribution, echo=TRUE, results=verbatim>>=
+trapezoid <- pbaDistr(distr = "rtrapezoid", args = list(min = 0.85, 
+				mode1 = 0.90, mode2 = 0.95, max = 1))
+exp.bias <- pbaVariable(variable='exp',
+		misclassification = list(
+				se.a.distr = trapezoid, 
+				sp.a.distr = trapezoid,
+				se.b.distr = trapezoid,
+				sp.b.distr = trapezoid,
+				se.cor = 1,
+				sp.cor = 1))
+@
+
+Any random number generation function can be used to describe a \Rclass{pba.distr} probability distribution object. More common examples include \Rfunction{rnorm}, \Rfunction{rbinom}, or \Rfunction{rpois}, and a more complete list of available distributions is available at \url{http://cran.r-project.org/web/views/Distributions.html}.
+
+Having defined a \Rclass{pba.variable} object \Rcode{exp.bias}, the next step is to perform the probabilistic bias analysis on a \Rcode{lm} or \Rcode{glm} object.
+
+<<pbaAnalysis, echo=TRUE, results=verbatim>>=
+pba1 <- pba(model = glm1, pba.variables = exp.bias, iter=100, progress=10)
+@
+
+In this example, the number of iterations performed (\Rcode{iter}) is kept small in the interest of time. For a publication quality analysis, \Rcode{iter} should be set much higher. The \Rcode{progress} argument prints the progress of the analysis after every specified iterations.
+
+The results of the \Rclass{pba} analysis are sumarized with the \Rcode{summary} method:
+
+<<pbaSummary, echo=TRUE, results=verbatim>>=
+summary(pba1)
+@
+
+The \Rcode{coefficients.star} data frame summarizes the original coefficients of the \Rcode{glm1} model, prior to adjustment for bias. The \Rcode{coefficients.hat} data frame summarizes the coefficients after adjusting for bias, but before including random error.  The \Rcode{coefficients.hat.random} data frame summarizes the coefficients after adjusting for both bias and including random error. The \Rcode{precision} column summarizes the width of the confidence or simulation limits, which in this case is the upper limit minus the lower limit.
+
+In this example, since \Rcode{glm1} is a logistic regression model, it is often more intuitive to report the effect estimates as odds ratios by exponentiating the coefficients. For convenience, this can be done with the following:
+
+<<pbaSummaryExp, echo=TRUE, results=verbatim>>=
+summary(pba1, transformation="exp", scale="multiplicative")
+@
+
+Here, the transformation specifies that coefficients should be transformed by the exponential function \Rcode{exp}, however any other appropriate transformative funciton may be specified. Since the exponential function transforms the coefficients from the additive scale to the multiplicative scale, specifying \Rcode{scale} as "multicplicative" assures that \Rcode{precision} is correctly calculated as the upper limit divided by the lower limit, instead of the upper limit minus the lower limit.
+
+The distribution of the effect estimates may be plotted as follows:
+
+<<plotEstimates, fig = true>>=
+plotEstimates(pba1)	
+@
+
+The distribution of the bias parameters can also be plotted:
+
+<<plotBias, fig=TRUE>>=
+plotBias(pba1)
+@
+
+
+
+
+
+\clearpage
+\end{document}
