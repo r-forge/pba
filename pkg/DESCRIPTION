@@ -1,6 +1,6 @@
 Package: pba
-Version: 0.2-2
-Date: 2011-03-29
+Version: 0.2-3
+Date: 2011-03-30
 Title: Probabilistic Bias Analysis
 Author@R: person("Jeremy", "Hetzel", "Thoms",
 				 email = "jthetzel@gmail.com")
