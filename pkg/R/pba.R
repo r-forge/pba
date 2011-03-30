@@ -7,7 +7,7 @@
 
 
 #' Performs bias analysis with probabilistic methods
-#'
+#' 
 #' \tabular{ll}{
 #' Package: \tab pba\cr
 #' Type: \tab Package\cr
@@ -28,7 +28,8 @@
 #' LazyLoad: \tab yes\cr
 #' LazyData: \tab yes\cr
 #' }
-#' 
+NULL
+
 #' pba: Probabilistic Bias Analysis
 #' 
 #' The pba package performs probabilistic bias analyses, with methods are 
@@ -41,7 +42,6 @@
 #' @import plyr
 #' @import reshape
 #' @import ggplot2
-#' @import QRMlib
 #' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
 #' 
 NULL
@@ -94,7 +94,8 @@ logit <- function(x)
 # Main function to perform PBA
 pba <- function(model,
 		pba.variables,
-		iter = 1000)
+		iter = 1000,
+		progress = 100)
 {
 	# Record start time
 	time.start <- Sys.time()
@@ -111,7 +112,10 @@ pba <- function(model,
 	for (i in 1:iter)
 	{
 		# Print iteration to follow progress
-		if (i %% 10 == 0) print(i)
+		if (is.null(progress) | is.na(progress))
+		{
+			if (i %% progress == 0) print(i)
+		}
 		
 		# Sample bias parameters
 		bias.tables <- pbaBiasTables(pba.variables, iter = 1)
@@ -241,10 +245,7 @@ pbaIterateMisclassification <- function(model, bias.tables, iter)
 					current.table$misclassification$ppv.b[i])
 			correct.b0 <- rbinom(length(rows.b0), 1, 
 					current.table$misclassification$npv.b[i])
-			#print('a1 '); print(correct.a1);
-			#print('a0 '); print(correct.a0);
-			#print('b1 '); print(correct.b1);
-			#print('bo '); print(correct.b0);
+			
 			# Change exposure if classification not correct				
 			data[rows.a1,j][correct.a1==0] <- as.numeric(!data[rows.a1,j][correct.a1==0])
 			data[rows.a0,j][correct.a0==0] <- as.numeric(!data[rows.a0,j][correct.a0==0])
@@ -1676,39 +1677,39 @@ rtrapezoid <- function (n, min = 0, mode1 = 0.33, mode2 = 0.67, max = 1)
 #' is effecting.
 #' @param misclassification A list describing misclassification bias. The list 
 #' consists of the following parameters:
-#' \item {se.a.distr}{A pba.distr object defining the sensitivity among cases.}
-#' \item {sp.a.distr}{A pba.distr object defining the specificity among cases.}
-#' \item {se.b.distr}{A pba.distr object defining the sensitivity among 
+#' \item{se.a.distr}{A pba.distr object defining the sensitivity among cases.}
+#' \item{sp.a.distr}{A pba.distr object defining the specificity among cases.}
+#' \item{se.b.distr}{A pba.distr object defining the sensitivity among 
 #' non-cases.}
-#' \item {sp.b.distr}{A pba.distr object defining the sensitivity among 
+#' \item{sp.b.distr}{A pba.distr object defining the sensitivity among 
 #' non-cases.}
-#' \item {se.cor}{Correlation between sensitivity among cases and non-cases. 
+#' \item{se.cor}{Correlation between sensitivity among cases and non-cases. 
 #' Correlation of 1 indicates non-differential selection bias. Correlation of 
 #' 0 indicates independent differential selection bias. Correlation less than 
 #' 1 but greater than 0 indicates partial differential selection bias.}
-#' \item {se.cor}{Correlation between specificity among cases and non-cases. 
+#' \item{se.cor}{Correlation between specificity among cases and non-cases. 
 #' Correlation of 1 indicates non-differential selection bias. Correlation of 0 
 #' indicates independent differential selection bias. Correlation less than 1 
 #' but greater than 0 indicates partial differential selection bias.}
 #' @param selection A list describing selection bias. The list consists of the 
 #' following parameters:
-#' \item {s.a1.distr}{A pba.distr object defining selection among exposed cases.}
-#' \item {s.a0.distr}{A pba.distr object defining selection among non-exposed 
+#' \item{s.a1.distr}{A pba.distr object defining selection among exposed cases.}
+#' \item{s.a0.distr}{A pba.distr object defining selection among non-exposed 
 #' cases.}
-#' \item {s.b1.distr}{A pba.distr object defining selection among exposed 
+#' \item{s.b1.distr}{A pba.distr object defining selection among exposed 
 #' non-cases.}
-#' \item {s.b0.distr}{A pba.distr object defining selection among non-exposed 
+#' \item{s.b0.distr}{A pba.distr object defining selection among non-exposed 
 #' non-cases.}
 #' @param confounding A list containing one or more lists describing unmeasured 
 #' confounding bias.  The confounder bias lists contain the following parameters:
-#' \item {p1.distr}{A pba.distr object defining the probability of the 
+#' \item{p1.distr}{A pba.distr object defining the probability of the 
 #' unmeasured confounder among the exposed.}
-#' \item {p0.distr}{A pba.distr object defining the probability of the 
+#' \item{p0.distr}{A pba.distr object defining the probability of the 
 #' unmeasured confounder among the non-exposed.}
-#' \item {rr.distr}{(optional) A pba.distr object defining the relative risk 
+#' \item{rr.distr}{(optional) A pba.distr object defining the relative risk 
 #' association between the confounder and the outcome. rr.distr or or.distr must 
 #' be defined. If both are defined, rr.distr is used instead of or.distr.}
-#' \item {or.distr}{(optional) A pba.distr object defining the odds ratio 
+#' \item{or.distr}{(optional) A pba.distr object defining the odds ratio 
 #' association between the confounder and the outcome. rr.distr or or.distr 
 #' must be defined. If both are defined, rr.distr is used instead of or.distr.}
 #' 
