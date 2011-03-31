@@ -1,12 +1,13 @@
-import(plyr)
-import(reshape)
-import(ggplot2)
-export(pba)
+export(expit, logit, pba, pbaDistr, rtrapezoid, pbaVariable, 
+	summary.pba, print.pba, print.pba.variables, pbaPlotConfoundingProportions, 
+	pbaPlotConfoundingRisks, 
+	pbaPlotMisclassification, pbaPlotSelection, plotBias, plotEstimates,
+	plot.pba)	
+
 S3method(print, pba)
-export(summary.pba)
-export(pbaDistr)
-export(plotBias)
-export(plotEstimates)
-export(rtrapezoid)
-export(pbaVariable)
 S3method(plot, pba)
+
+import(plyr)
+import(ggplot2)
+import(reshape)
+import(roxygen)
