@@ -97,8 +97,6 @@ e <- pbaPlotBias(pba6, print=T, types=c("misclassification", "selection"))
 f <- pbaPlotBias(pba6, print=T, types=c("confounding", "selection", "misclassification", "selection"))
 
 plot(pba6)
-a <- plot(pba6, print = F)
-plotBias(pba6)
 
 
 
