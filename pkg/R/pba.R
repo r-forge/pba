@@ -112,7 +112,7 @@ pba <- function(model,
 	for (i in 1:iter)
 	{
 		# Print iteration to follow progress
-		if (is.null(progress) | is.na(progress))
+		if (is.null(progess) | is.na(progress))
 		{
 			if (i %% progress == 0) print(i)
 		}
@@ -245,7 +245,7 @@ pbaIterateMisclassification <- function(model, bias.tables, iter)
 					current.table$misclassification$ppv.b[i])
 			correct.b0 <- rbinom(length(rows.b0), 1, 
 					current.table$misclassification$npv.b[i])
-			
+
 			# Change exposure if classification not correct				
 			data[rows.a1,j][correct.a1==0] <- as.numeric(!data[rows.a1,j][correct.a1==0])
 			data[rows.a0,j][correct.a0==0] <- as.numeric(!data[rows.a0,j][correct.a0==0])
@@ -1314,7 +1314,7 @@ plotBias <- function(pba, density=T, scales='free', types=NULL, print=T)
 				density = density, scales = scales)
 	}
 	
-	
+
 	# Print plots with viewports
 	if (print)
 	{
