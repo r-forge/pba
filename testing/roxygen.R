@@ -1,24 +1,24 @@
 require(roxygen)
 
 # Set working directory
-directory <- "C:/Users/jthetzel/Research/pba/devel/"
+directory <- "C:/Users/jthetzel/Research/pba"
 setwd(directory)
-directory <- "/home/jthetzel/Research/pba/devel/"
+directory <- "/home/jthetzel/Research/pba"
 setwd(directory)
 
 
-package.skeleton('pba', code_files='devel/R/pba.R', force=T, namespace=T, path=".")
-roxygenize('pba', copy.package=T)
+package.skeleton('pba', code_files='pkg/R/pba.R', force=T, namespace=T, path=".")
+roxygenize('pba', copy.package=F, roxygen.dir="roxygen")
 
 
 
 
 cat('"C:/Program Files/R/R-2.12.2/bin/x64/R" CMD build "C:/Users/jthetzel/Research/test.roxygen/"')
-build <- '"C:/Program Files/R/R-2.12.2/bin/x64/R" CMD build "C:/Users/jthetzel/Research/pba/pkg/" --binary'
+build <- '"C:/Program Files/R/R-2.12.2/bin/x64/R" CMD build "C:/Users/jthetzel/Research/pba/pba/" --binary'
 check <- '"C:/Program Files/R/R-2.12.2/bin/x64/R" CMD check "C:/Users/jthetzel/Research/pba/pkg/"'
-system(string)
+system(build)
 
-build <- '"C:/Program Files/R/R-2.12.2/bin/x64/R" CMD build "C:/Users/jthetzel/Downloads/digest"'
+
 
 
 
