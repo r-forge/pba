@@ -112,7 +112,7 @@ pba <- function(model,
 	for (i in 1:iter)
 	{
 		# Print iteration to follow progress
-		if (is.null(progess) | is.na(progress))
+		if (is.null(progress) | is.na(progress))
 		{
 			if (i %% progress == 0) print(i)
 		}
