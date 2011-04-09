@@ -112,7 +112,7 @@ pba <- function(model,
 	for (i in 1:iter)
 	{
 		# Print iteration to follow progress
-		if (is.null(progress) | is.na(progress))
+		if (!is.null(progress) & !is.na(progress))
 		{
 			if (i %% progress == 0) print(i)
 		}
@@ -653,7 +653,7 @@ pbaCalculatePredictiveValuesInternal <- function(exposure, misclassification,
 
 
 # Sample confounding paramaters
-pbaSampleConfounding <- function(confounding, iter)
+pbaSampleConfoundingOld <- function(confounding, iter)
 {
 	# Create a results list to store results
 	results <- list()
@@ -667,8 +667,8 @@ pbaSampleConfounding <- function(confounding, iter)
 			i <- pbaAddIter(i, iter)
 			
 			# Sample the proportion distributions
-			p1 <- do.call(i$p1.distr$distr, i$p1.distr$args)
-			p0 <- do.call(i$p1.distr$distr, i$p1.distr$args)
+			p1 <- do.call(paste("r", i$p1.distr$distr, sep=""), i$p1.distr$args)
+			p0 <- do.call(paste("r", i$p1.distr$distr, sep=""), i$p1.distr$args)
 			
 			# Correct if p1 is < or > 0 or 1, respectively
 			p1 <- pbaCorrectConfounding(p = p1, distr = i$p1.distr$distr,
@@ -679,11 +679,11 @@ pbaSampleConfounding <- function(confounding, iter)
 			# Sample rr if specified, otherwise sample rd
 			if (!is.null(i$rr.distr))
 			{
-				rr <- do.call(i$rr.distr$distr, i$rr.distr$args)
+				rr <- do.call(paste("r", i$rr.distr$distr, sep=""), i$rr.distr$args)
 				rd <- rep(NA, iter)
 			} else
 			{
-				rd <- do.call(i$rd.distr$distr, i$rd.distr$args)
+				rd <- do.call(paste("r", i$rd.distr$distr, sep=""), i$rd.distr$args)
 				rr <- rep(NA, iter)
 			}
 		}
@@ -703,29 +703,29 @@ pbaSampleSelection <- function(selection, iter)
 	# Create a results list to store results
 	results <- c()
 	
-	if (!is.null(selection$s.a1.distr))
+	# Specify sigma, which is the lower triangle of a correlation matrix
+	if (is.matrix(selection$sigma))
 	{
-		# Add iter to n argument
-		selection <- pbaAddIter(selection, iter)
-		
-		# Sample the proportion distributions
-		s.a1 <- do.call(selection$s.a1.distr$distr, selection$s.a1.distr$args)
-		s.a0 <- do.call(selection$s.a0.distr$distr, selection$s.a0.distr$args)
-		s.b1 <- do.call(selection$s.b1.distr$distr, selection$s.b1.distr$args)
-		s.b0 <- do.call(selection$s.b0.distr$distr, selection$s.b0.distr$args)
-		
-		# Correct if p1 is < or > 0 or 1, respectively
-		s.a1 <- pbaCorrectConfounding(p = s.a1, distr = selection$s.a1.distr$distr,
-				args = selection$s.a1.distr$args)
-		s.a0 <- pbaCorrectConfounding(p = s.a0, distr = selection$s.a0.distr$distr,
-				args = selection$s.a0.distr$args)
-		s.b1 <- pbaCorrectConfounding(p = s.b1, distr = selection$s.b1.distr$distr,
-				args = selection$s.b1.distr$args)
-		s.b0 <- pbaCorrectConfounding(p = s.b0, distr = selection$s.b0.distr$distr,
-				args = selection$s.b0.distr$args)
-		
+		sigma <- lower.tri(selection$sigma)
+	} else if (is.vector(selection$sigma))
+	{
+		sigma <- selection$sigma	
+	} else
+	{
+		sigma <- c(selection$s.1.cor, selection$s.a.cor, 0, 0, selection$s.b.cor, 
+				selection$s.0.cor)
 	}
-	result <- data.frame(s.a1, s.a0, s.b1, s.b0)	
+	
+	# Generate correlated samples
+	correlated <- pbaCorrelate(n = iter, pbaDistrs = selection, 
+			sigma = sigma)
+	
+	# Correct if p1 is < or > 0 or 1, respectively
+	correlated <- pbaCorrectProbability(p = correlated, pbaDistr = selection,
+			sigma = sigma)
+		
+
+	return(data.frame(correlated))	
 	
 	
 	return(result)
@@ -735,7 +735,7 @@ pbaSampleSelection <- function(selection, iter)
 
 
 # Sample misclassification parameters
-pbaSampleMisclassification <- function(misclassification, iter)
+pbaSampleMisclassificationOld <- function(misclassification, iter)
 {
 	# Function will return NAs if iter == 1, I think do to the way
 	# the correlations are imposed.  As a temporary fix, if iter ==
@@ -751,13 +751,13 @@ pbaSampleMisclassification <- function(misclassification, iter)
 	misclassification <- pbaAddIter(x=misclassification, iter=iter)
 	
 	# Sample the sensitivites and specificities
-	se.as.uncor <- do.call(misclassification$se.a.distr$distr, 
+	se.as.uncor <- do.call(paste("r", misclassification$se.a.distr$distr, sep=""), 
 			misclassification$se.a.distr$args)
-	sp.as.uncor <- do.call(misclassification$sp.a.distr$distr, 
+	sp.as.uncor <- do.call(paste("r", misclassification$sp.a.distr$distr, sep=""), 
 			misclassification$sp.a.distr$args)									
-	se.bs.uncor <- do.call(misclassification$se.b.distr$distr, 
+	se.bs.uncor <- do.call(paste("r", misclassification$se.b.distr$distr, sep=""), 
 			misclassification$se.b.distr$args)
-	sp.bs.uncor <- do.call(misclassification$sp.b.distr$distr, 
+	sp.bs.uncor <- do.call(paste("r", misclassification$sp.b.distr$distr, sep=""), 
 			misclassification$sp.b.distr$args)
 	
 	# Combine sampled uncorrelated sensitivities and specificities 
@@ -1051,28 +1051,20 @@ pbaIterateSelection <- function(model, model.original=NULL, bias.tables, iter)
 #' Function to define distributions for bias parameters.
 #' 
 #' @param distr A character vector of length one naming a random generation 
-#' ditribution.
-#' @param args Additional arguments to be passed to the distr function. The 
-#' argument \code{n} does not need to be specified, as it will be autumatically 
-#' added when appropriate in subsequent functions.
+#' distribution.
+#' @param ... Additional arguments to be passed to the \code{distr} function.
 #' 
 #' @return An object of class \code{pba.distr}.
 #' 
 #' @export 
-#' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
-
-# Function to create a pba distribution object
-pbaDistr <- function(distr, args)
-# Character name of random generation
-# distribution function. E.g. 'rnorm'.
-# List of arguments passed to ditribution function.
-# E.g. args=list(mean=0.85, sd=0.05) for the 
-# rnorm function.  'n' should not be specified, as
-# it will be automatically determined in subsequent
-# PBA functions.
+#' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com
+pbaDistr <- function(distr, ...)
 {
-	result <- list(distr=distr, args=args)
+	result <- list(distr = distr, args = list(...))
+	class(result) <- "pbaDistr"
+	return(result)
 }
+
 
 
 #
@@ -1137,19 +1129,48 @@ pbaBackCalculate <- function(a1.star, a0.star, b1.star, b0.star,
 
 
 # Remove and resample if values are less than 0 or greater than 1
-pbaCorrectConfounding <- function(p, distr, args)
+pbaCorrectConfoundingOld <- function(p, distr, args)
 {
 	rows <- which(p < 0 | p > 1)
 	while (length(rows) > 0)
 	{
 		args$n <- length(rows)
-		p[rows] <- do.call(distr, args)
+		p[rows] <- do.call(paste("r", distr, sep=""), args)
 		rows <- which(p < 0 | p > 1)
 	}
 	
 	return(p)
 }
 
+# Remove and resample if values are less than 0 or greater than 1
+pbaCorrectProbability <- function(p, pbaDistrs, sigma)
+{
+	# This function requires p to be a matrix
+	if(is.vector(p))
+	{
+		p <- matrix(p, nrow = 1)
+	}
+	
+	rows <- apply(p, 1, function(x)
+			{
+				any(x < 0 | x > 1)
+			})
+	rows <- which(rows)
+
+	while (length(rows) > 0)
+	{
+		iter <- length(rows)
+		p[rows,] <- pbaCorrelate(n = iter, pbaDistrs = pbaDistrs, 
+				sigma = sigma)
+		rows <- apply(p, 1, function(x)
+				{
+					any(x < 0 | x > 1)
+				})
+		rows <- which(rows)
+	}
+	
+	return(p)
+}
 
 
 
@@ -1239,7 +1260,7 @@ print.pba.variables <- function(x, ...)
 }
 
 
-#' Plot density ditribution of bias parameters of a pba object
+#' Plot density distribution of bias parameters of a pba object
 #' 
 #' @param pba A pba object.
 #' @param density Logical; if true, plots smoothed density. If false, plots
@@ -1489,7 +1510,7 @@ pbaPlotConfoundingRisks <- function(pba=NULL, data=NULL,
 
 
 
-#' Plot density ditribution of estimates after adjusting for bias
+#' Plot density distribution of estimates after adjusting for bias
 #' 
 #' @param pba A pba object.
 #' @param data ?
@@ -1626,51 +1647,6 @@ pbaPlotSelection <- function(pba=NULL, data=NULL, density=T,
 }
 
 
-#' Random generation from a trapezoidal distribution.
-#' @param n Number of observations. If length(n) > 1, the length is taken to be the number required.
-#' @param min Lower bound of the trapezoid.
-#' @param mode1 Lower mode of the trapezoid.
-#' @param mode2 Upper mode of the trapezoid.
-#' @param max Upper bound of the trapezoid.
-#' 
-#' @return A vector numbers randomly generated from the trapezoidal distribution.
-#' @export 
-#' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
-#' @references Adapted from Matthew Fox and colleagues' SAS macro SENSITIVITY ANALYSIS MISCLASSIFICATION MACRO version 1.1.
-#' Available: \link{http://sites.google.com/site/biasanalysis/}
-
-rtrapezoid <- function (n, min = 0, mode1 = 0.33, mode2 = 0.67, max = 1) 
-{
-	# Check arguments are valid
-	if (length(n) > 1) 
-		n <- length(n)
-	if (n < 1 | is.na(n)) 
-		stop(paste("invalid argument: n =", n))
-	n <- floor(n)
-	if (any(is.na(c(min, mode1, mode2, max)))) 
-		return(rep(NaN, times = n))
-	if (min > max | min > mode1 | min > mode2 | mode1 > max | mode2 > max |
-			mode1 > mode2) 
-		return(rep(NaN, times = n))
-	if (any(is.infinite(c(min, mode1, mode2, max)))) 
-		return(rep(NaN, times = n))
-	
-	# Generate random numbers
-	p <- runif(n)
-	r <- (p * (max + mode2 - min - mode1) + (min + mode1)) / 2
-	
-	# Adjust if random number is less than mode1
-	rs.lt.mode1 <- which(r < mode1)
-	r[rs.lt.mode1] <- min + sqrt((mode1 - min) * (2 * r[rs.lt.mode1] - min - mode1))
-	
-	# Adjust if random number is greater than mode2
-	rs.gt.mode2 <- which(r > mode2)
-	r[rs.gt.mode2] <- max - sqrt(2 * (max - mode2) * (r[rs.gt.mode2] - mode2))
-	
-	return(r)
-}
-
-
 #' Define bias parameters
 #' 
 #' @param variable A character vector naming the variable upon which the bias 
@@ -1721,7 +1697,13 @@ rtrapezoid <- function (n, min = 0, mode1 = 0.33, mode2 = 0.67, max = 1)
 # Function to create a define bias of a variable
 pbaVariable <- function(variable, misclassification = NULL, 
 		selection = NULL, confounding = NULL)
-{											
+{	
+	misclassification <- pbaVariableMisclassification(misclassification)
+	selection <- pbaVariableSelection(selection)
+	confounding <- lapply(confounding, function(x)
+			{
+				x <- pbaVariableConfounding(x)
+			})
 	result <- list()
 	result[[variable[[1]]]] <- list(variable=variable, 
 			misclassification=misclassification, 
@@ -1731,6 +1713,136 @@ pbaVariable <- function(variable, misclassification = NULL,
 	class(result) <- "pba.variables"
 	return(result)	
 }
+
+# Function to make sure misclassification is well formed
+pbaVariableMisclassification <- function(misclassification)
+{
+	if(is.null(misclassification))
+	{
+		out <- NULL
+	} else
+	{
+		out <- list()
+		out$se.a.distr <- misclassification$se.a.distr
+		out$se.b.distr <- misclassification$se.b.distr
+		out$sp.a.distr <- misclassification$sp.a.distr
+		out$sp.b.distr <- misclassification$sp.b.distr
+		if (is.null(misclassification$se.cor))
+		{
+			out$se.cor <- NULL
+		} else
+		{
+			out$se.cor <- misclassification$se.cor
+		}
+		if (is.null(misclassification$sp.cor))
+		{
+			out$sp.cor <- NULL
+		} else
+		{
+			out$sp.cor <- misclassification$sp.cor
+		}
+		if (is.null(misclassification$sigma))
+		{
+			out$sigma <- NULL
+		} else
+		{
+			out$sigma <- misclassification$sigma
+		}
+	}
+	
+	return(out)
+}
+
+
+
+# Function to make sure selection bias is well formed
+pbaVariableSelection <- function(selection)
+{
+	if(is.null(selection))
+	{
+		out <- NULL
+	} else
+	{
+		out <- list()
+		out$s.a1.distr <- selection$s.a1.distr
+		out$s.b1.distr <- selection$s.b1.distr
+		out$s.a0.distr <- selection$s.a0.distr
+		out$s.b0.distr <- selection$s.b0.distr
+		if (is.null(selection$s.1.cor))
+		{
+			out$s.1.cor <- 0
+		} else
+		{
+			out$s.1.cor <- selection$s.1.cor
+		}
+		if (is.null(selection$s.a.cor))
+		{
+			out$s.a.cor <- 0
+		} else
+		{
+			out$s.a.cor <- selection$s.a.cor
+		}
+		if (is.null(selection$s.b.cor))
+		{
+			out$s.b.cor <- 0
+		} else
+		{
+			out$s.b.cor <- selection$s.b.cor
+		}
+		if (is.null(selection$s.0.cor))
+		{
+			out$s.0.cor <- 0
+		} else
+		{
+			out$s.0.cor <- selection$s.0.cor
+		}
+		if (is.null(selection$sigma))
+		{
+			out$sigma <- NULL
+		} else
+		{
+			out$sigma <- selection$sigma
+		}
+	}
+	
+	return(out)
+}
+
+
+
+# Function to make sure misclassification is well formed
+pbaVariableConfounding <- function(confounding)
+{
+	if(is.null(confounding))
+	{
+		out <- NULL
+	} else
+	{
+		out <- list()
+		out$p1.distr <- confounding$p1.distr
+		out$p0.distr <- confounding$p0.distr
+		out$rd.distr <- confounding$rd.distr
+		out$rr.distr <- confounding$rr.distr
+		out$name <- confounding$name
+		if (is.null(confounding$p.cor))
+		{
+			out$p.cor <- NULL
+		} else
+		{
+			out$p.cor <- confounding$p.cor
+		}
+		if (is.null(confounding$sigma))
+		{
+			out$sigma <- NULL
+		} else
+		{
+			out$sigma <- confounding$sigma
+		}
+	}
+	
+	return(out)
+}
+
 
 
 
@@ -1748,3 +1860,156 @@ plot.pba <- function(pba=NULL, data=NULL, density=T, exp=F, adjust=1,
 			adjust = adjust, binwidth = binwidth, scales = scales,
 			variables = variables, print = print)
 }
+
+
+
+# Cor method for pba objects
+cor.pba <- function(pba = NULL, ...)
+{
+	bias.table <- pba$bias.table
+	lapply(bias.table, function(variable)
+			{
+				out <- list()
+				if(!is.null(variable$misclassification))
+				{
+					out$misclassification <- cor(
+							variable$misclassification[, c("se.a", "se.b", "sp.a", "sp.b")],
+							...)
+				}
+				if(!is.null(variable$selection))
+				{
+					out$selection <- cor(
+							variable$selection[, c("s.a1", "s.b1", "s.a0", "s.b0")], ...)
+				}
+				if(!is.null(variable$confounding))
+				{
+					out$confounding <- lapply(variable$confounding, function(x)
+							{
+								cor(x[, c("p1", "p0")], ...)
+							})
+				}
+				return(out)
+			})
+}
+
+
+
+
+# Sample misclassification parameters
+pbaSampleMisclassification <- function(misclassification, iter)
+{	
+	# Create results list to store results
+	results <- list()
+	
+	# Specify sigma, which is the lower triangle of a correlation matrix
+	if (is.matrix(misclassification$sigma))
+	{
+		sigma <- lower.tri(misclassification$sigma)
+	} else if (is.vector(misclassification$sigma))
+	{
+		sigma <- misclassification$sigma	
+	} else
+	{
+		sigma <- c(misclassification$se.cor, 0, 0, 0, 0, misclassification$sp.cor)
+	}
+	
+	# Generate correlated samples
+	correlated <- pbaCorrelate(n = iter, pbaDistrs = misclassification, 
+			sigma = sigma)
+	
+	
+	# Return results data frame
+	return(data.frame(correlated))	
+}
+
+
+
+
+
+pbaCorrelate <- function (n, pbaDistrs, sigma)
+{
+	# Extract distributions
+	distr.list <- lapply(pbaDistrs[which(lapply(pbaDistrs, class)=="pbaDistr")], 
+			function(x) 
+			{
+				x$distr
+			})
+	# Extraxt arguments
+	args.list <- lapply(pbaDistrs[which(lapply(pbaDistrs, class)=="pbaDistr")], 
+			function(x) 
+			{
+				x$args
+			})
+	
+	# Create normal copula to construct correlations
+	copula <- normalCopula(param = sigma, dim = length(distr.list), dispstr = "un")
+	
+	# Create multivariate distribution
+	correlated <- mvdc(copula = copula, margins = paste(distr.list), paramMargins = args.list)
+	
+	out <- rmvdc(correlated, n = n)
+	colnames(out) <- gsub(".distr", "", 
+			names(which(lapply(pbaDistrs, class)=="pbaDistr")))
+	
+	return(out)
+}
+
+
+
+
+# Sample confounding paramaters
+pbaSampleConfounding <- function(confounding, iter)
+{
+	# Create a results list to store results
+	results <- list()
+	
+	# Iterate through variables
+	for (i in confounding)
+	{
+		if (!is.null(i$p1.distr))
+		{
+			# Specify sigma, which is the lower triangle of a correlation matrix
+			if (is.matrix(i$sigma))
+			{
+				sigma <- lower.tri(i$sigma)
+			} else if (is.vector(i$sigma))
+			{
+				sigma <- i$sigma	
+			} else if (!is.null(i$p.cor))
+			{
+				sigma <- c(i$p.cor)
+			} else
+			{
+				sigma <- 0
+			}
+			
+			# Generate correlated samples
+			correlated <- pbaCorrelate(n = iter, pbaDistrs = i[c('p1.distr', 'p0.distr')], 
+					sigma = sigma)
+			
+			# Correct if p1 is < or > 0 or 1, respectively
+			correlated <- pbaCorrectProbability(p = correlated, pbaDistr = i,
+					sigma = sigma)
+			
+			# Sample rr if specified, otherwise sample rd
+			if (!is.null(i$rr.distr))
+			{
+				args <- i$rr.distr$args
+				args$n <- iter
+				rr <- do.call(paste("r", i$rr.distr$distr, sep=""), args = args)
+				rd <- rep(NA, iter)
+			} else
+			{
+				args <- i$rd.distr$args
+				args$n <- iter
+				rd <- do.call(paste("r", i$rd.distr$distr, sep=""), args = args)
+				rr <- rep(NA, iter)
+			}
+		}
+		
+		results[[i$name]] <- data.frame(correlated, rr, rd)	
+	}
+	
+	return(results)
+}
+
