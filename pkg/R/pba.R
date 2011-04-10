@@ -47,7 +47,6 @@
 #' @import plyr
 #' @import reshape
 #' @import ggplot2
-#' @import fUtilities
 #' 
 NULL
 
@@ -1752,6 +1751,7 @@ pbaPlotSelection <- function(pba=NULL, data=NULL, density=T,
 #' is effecting.
 #' @param misclassification A list describing misclassification bias. The list 
 #' consists of the following parameters:
+#' \itemiza{
 #' \item{se.a.distr}{A pba.distr object defining the sensitivity among cases.}
 #' \item{sp.a.distr}{A pba.distr object defining the specificity among cases.}
 #' \item{se.b.distr}{A pba.distr object defining the sensitivity among 
@@ -1766,6 +1766,7 @@ pbaPlotSelection <- function(pba=NULL, data=NULL, density=T,
 #' Correlation of 1 indicates non-differential selection bias. Correlation of 0 
 #' indicates independent differential selection bias. Correlation less than 1 
 #' but greater than 0 indicates partial differential selection bias.}
+#' }
 #' @param selection A list describing selection bias. The list consists of the 
 #' following parameters:
 #' \item{s.a1.distr}{A pba.distr object defining selection among exposed cases.}
@@ -1972,7 +1973,6 @@ pbaVariableConfounding <- function(confounding)
 #' 
 #' @S3method plot pba
 #' @rdname plot.pba
-#' @aliases plotEstimates
 #' @export 
 #' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
 # Plot method for pba objects. Passes object to plotEstimates
@@ -2143,5 +2143,15 @@ pbaSampleConfounding <- function(confounding, iter)
 	}
 	
 	return(results)
+}
+
+
+
+# Internal, for now
+# Generic method of cor, from the fUtilities package
+cor <- function (x, y = NULL, use = "everything", method = c("pearson", 
+				"kendall", "spearman")) 
+{
+	UseMethod("cor")
 }
 
