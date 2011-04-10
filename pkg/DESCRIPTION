@@ -1,12 +1,12 @@
 Package: pba
-Version: 0.2-2
-Date: 2011-03-29
+Version: 0.2-3
+Date: 2011-04-10
 Title: Probabilistic Bias Analysis
 Author@R: person("Jeremy", "Hetzel", "Thoms",
 				 email = "jthetzel@gmail.com")
 Author: Jeremy T. Hetzel <jthetzel@gmail.com>
 Maintainer: Jeremy T. Hetzel <jthetzel@gmail.com>
-Depends: R (>= 2.12.0), plyr, ggplot2, QRMlib, reshape
+Depends: R (>= 2.12.0), plyr, ggplot2, reshape, fUtilities
 Description: The pba package performs probabilistic bias analyses with methods adapted from Lash TL, Fox MP, and Fink AK's Applying Quantitative Bias Analysis to Epidemiological Data (2010). The package can adjust for multiple sources of misclassification, selection, and unmeasured confounding bias.
 License: GPL-3
 URL: http://pba.r-forge.r-project.org/
