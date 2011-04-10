@@ -20,29 +20,34 @@
 #' Depends: \tab R (>= 2.12.0), plyr, ggplot2\cr
 #' Description: \tab The pba package performs probabilistic bias analyses, 
 #' with methods are adapted from Lash TL, Fox MP, and Fink AK's Applying 
-#' Quantitative Bias Analysis to Epidemiological Data (2010). Currently,
-#' only methods for adjustment of misclassification bias are included.\cr
+#' Quantitative Bias Analysis to Epidemiological Data (2010).
+#' Methods for adjustment of misclassification, selection, and unmeasured
+#' confounding are included.\cr
 #' License: \tab GPL-3\cr
 #' URL: \tab http://pba.r-forge.r-project.org/\cr
 #' BugReports: \tab https://r-forge.r-project.org/tracker/?func=add&group_id=988&atid=3913\cr		
 #' LazyLoad: \tab yes\cr
 #' LazyData: \tab yes\cr
 #' }
-NULL
-
-#' pba: Probabilistic Bias Analysis
 #' 
-#' The pba package performs probabilistic bias analyses, with methods are 
-#' adapted from Lash TL, Fox MP, and Fink AK's Applying Quantitative Bias 
-#' Analysis to Epidemiological Data (2010). Currently, only methods for 
-#' adjustment of misclassification bias are included.
+#' Probabilistic Bias Analysis
+#' 
+#' The pba package performs probabilistic bias analyses, 
+#' with methods are adapted from Lash TL, Fox MP, and Fink AK's Applying 
+#' Quantitative Bias Analysis to Epidemiological Data (2010).
+#' Methods for adjustment of misclassification, selection, and unmeasured
+#' confounding are included.
 #' 
 #' @name pba-package
 #' @docType package
+#' @title Probabilistic Bias Analysis
+#' @author Jeremy Thoms Hetzel \email{jthetzel@@gamil.com}
+#' @references 
+#' \url{https://sites.google.com/site/biasanalysis/}
 #' @import plyr
 #' @import reshape
 #' @import ggplot2
-#' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
+#' @import fUtilities
 #' 
 NULL
 
@@ -90,7 +95,6 @@ logit <- function(x)
 #' 
 #' @export 
 #' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
-
 # Main function to perform PBA
 pba <- function(model,
 		pba.variables,
@@ -209,7 +213,7 @@ pba <- function(model,
 }
 
 
-
+# Internal
 # Simulate classification of model data by Bernoulli trials
 pbaIterateMisclassification <- function(model, bias.tables, iter)
 {
@@ -262,6 +266,7 @@ pbaIterateMisclassification <- function(model, bias.tables, iter)
 }
 
 
+# Internal
 # Remove and resample if misclassification
 pbaCorrectMisclassification <- function(bias.tables, pba.variables, model, iter)
 {
@@ -341,7 +346,7 @@ pbaCorrectMisclassification <- function(bias.tables, pba.variables, model, iter)
 
 
 
-#
+# Internal
 pbaIterateConfoundingSingle <- function(exposure, outcome, model, confounding, 
 		name, iter)
 {
@@ -405,7 +410,7 @@ pbaIterateConfoundingSingle <- function(exposure, outcome, model, confounding,
 }
 
 
-# 
+# Internal
 pbaIterateConfounding <- function(model, bias.tables, iter)
 {
 	# Create list to store updated models
@@ -448,7 +453,7 @@ pbaIterateConfounding <- function(model, bias.tables, iter)
 
 
 
-
+# Internal
 # Function to backcalculate confounding
 pbaBackCalculateConfounding <- function(a1.=NULL, a0.=NULL, b1.=NULL, b0.=NULL, 
 		p1=NULL, p0=NULL, rr=NULL, rd=NULL)
@@ -492,6 +497,7 @@ pbaBackCalculateConfounding <- function(a1.=NULL, a0.=NULL, b1.=NULL, b0.=NULL,
 
 
 
+# Internal
 # Convert bias lists into bias tables
 pbaBiasListsTables <- function(bias.lists)
 {
@@ -553,7 +559,7 @@ pbaBiasListsTables <- function(bias.lists)
 
 
 
-
+# Internal
 # Funciton to generate bias tables from pba.variables object
 pbaBiasTables <- function(pba.variables, iter)
 {
@@ -597,6 +603,7 @@ pbaBiasTables <- function(pba.variables, iter)
 
 
 
+# Internal
 # Function to calculate PPV and NPV for misclassification
 pbaCalculatePredictiveValues <- function(bias.tables, model, iter)
 {
@@ -619,7 +626,7 @@ pbaCalculatePredictiveValues <- function(bias.tables, model, iter)
 
 
 
-#
+# Internal
 pbaCalculatePredictiveValuesInternal <- function(exposure, misclassification, 
 		model, iter)
 {
@@ -652,6 +659,7 @@ pbaCalculatePredictiveValuesInternal <- function(exposure, misclassification,
 
 
 
+# Internal
 # Sample confounding paramaters
 pbaSampleConfoundingOld <- function(confounding, iter)
 {
@@ -697,6 +705,7 @@ pbaSampleConfoundingOld <- function(confounding, iter)
 
 
 
+# Internal
 # Sample selection paramaters
 pbaSampleSelection <- function(selection, iter)
 {
@@ -734,6 +743,7 @@ pbaSampleSelection <- function(selection, iter)
 
 
 
+# Internal
 # Sample misclassification parameters
 pbaSampleMisclassificationOld <- function(misclassification, iter)
 {
@@ -852,7 +862,8 @@ pbaSampleMisclassificationOld <- function(misclassification, iter)
 
 
 
-
+# Internal
+# Function to add iter to the n argument of a random deviate generator
 pbaAddIter <- function(x, iter)
 {
 	for (i in names(x))
@@ -882,11 +893,10 @@ pbaAddIter <- function(x, iter)
 #' @param ... (optional) Additional arguments to pass to the 
 #' \code{transformation} function, if specified.
 #' 
-#' @S3method print pba
-#' @rdname pba
+#' @S3method summary pba
+#' @rdname summary.pba
 #' @export
 #' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
-
 # Create summary list of observed, bias adjusted, and bias and random
 # error adjusted
 summary.pba <- function(pba, transformation=NULL, scale="additive", alpha=0.05, ...)
@@ -982,7 +992,7 @@ summary.pba <- function(pba, transformation=NULL, scale="additive", alpha=0.05, 
 
 
 
-# 
+# Internal
 pbaIterateSelection <- function(model, model.original=NULL, bias.tables, iter)
 {
 	# Create list to store updated models
@@ -1050,11 +1060,11 @@ pbaIterateSelection <- function(model, model.original=NULL, bias.tables, iter)
 
 #' Function to define distributions for bias parameters.
 #' 
-#' @param distr A character vector of length one naming a random generation 
-#' distribution.
+#' @param distr A character vector of length one naming a distribution function.
+#' For example `norm' for the normal distribution.
 #' @param ... Additional arguments to be passed to the \code{distr} function.
 #' 
-#' @return An object of class \code{pba.distr}.
+#' @return An object of class \code{pba.distr}. 
 #' 
 #' @export 
 #' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com
@@ -1067,7 +1077,7 @@ pbaDistr <- function(distr, ...)
 
 
 
-#
+# Internal
 pbaBackCalculate <- function(a1.star, a0.star, b1.star, b0.star, 
 		se.a, sp.a, se.b, sp.b)
 # Function to back calculate the true number of exposed and 
@@ -1128,6 +1138,7 @@ pbaBackCalculate <- function(a1.star, a0.star, b1.star, b0.star,
 
 
 
+# Internal
 # Remove and resample if values are less than 0 or greater than 1
 pbaCorrectConfoundingOld <- function(p, distr, args)
 {
@@ -1142,6 +1153,9 @@ pbaCorrectConfoundingOld <- function(p, distr, args)
 	return(p)
 }
 
+
+
+# Internal
 # Remove and resample if values are less than 0 or greater than 1
 pbaCorrectProbability <- function(p, pbaDistrs, sigma)
 {
@@ -1174,6 +1188,13 @@ pbaCorrectProbability <- function(p, pbaDistrs, sigma)
 
 
 
+#' @param x An object of class \code{pba}.
+#' @param digits The number of significant digits to use when printing.
+#' 
+#' @S3method print pba
+#' @rdname print.pba
+#' @export
+#' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
 # Print method for pba objects
 print.pba <- function (x, digits = max(3, getOption("digits") - 3), ...) 
 {
@@ -1192,6 +1213,13 @@ print.pba <- function (x, digits = max(3, getOption("digits") - 3), ...)
 }
 
 
+
+#' @param x An object of class \code{pba.variables}.
+#' 
+#' @S3method print pba.variables
+#' @rdname print.pba.variables
+#' @export
+#' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
 # Print method for pba.variables object
 print.pba.variables <- function(x, ...)
 {
@@ -1283,7 +1311,6 @@ print.pba.variables <- function(x, ...)
 #' 
 #' @export 
 #' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
-
 # pba plot method
 plotBias <- function(pba, density=T, scales='free', types=NULL, print=T)
 {
@@ -1387,6 +1414,30 @@ plotBias <- function(pba, density=T, scales='free', types=NULL, print=T)
 }
 
 
+
+#' Plot density distribution of misclassification bias parameters of a pba object
+#' 
+#' @param pba An object of class \code{pba}.
+#' @param data (optional) If \code{pba} is not provided, a data frame object can
+#' be specified. The optional argument is provided ofr users desiring finer 
+#' control of the plots.
+#' @param density Logical; if true, plots smoothed density. If false, plots
+#' histogram.
+#' @param parameters A character vector specifying which bias parameters to
+#' include in the plots. Expected values are `se.a', `se.b', `sp.a', and `sp.b'.
+#' @param title A character vector of length one specifying the plot's title.
+#' @param sclaes Character string passed to ggplot. This parameter controls
+#' whether the x and y axes are free or fixed. Acceptable values are "free",
+#' "fixed", "free_x", or "free_y"
+#' @param L2 A character vector of length one specifying which bias type to plot.
+#' The expected value for this function is `misclassification'.
+#' 
+#' @return The \code{plotBiasMisclassification} function returns density plots or histograms of the
+#' distribution of misclassification bias parameters for a \code{pba} object. 
+#' This function allows finer control of plots than the \code{plotBias} function.
+#' 
+#' @export 
+#' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
 # Misclassification
 pbaPlotMisclassification <- function(pba=NULL, data=NULL, density=T,
 		parameters=c('se.a', 'se.b', 'sp.a', 'sp.b'), title='Misclassification', 
@@ -1427,6 +1478,30 @@ pbaPlotMisclassification <- function(pba=NULL, data=NULL, density=T,
 }
 
 
+
+#' Plot density distribution of confounding proportion bias parameters of a pba object
+#' 
+#' @param pba An object of class \code{pba}.
+#' @param data (optional) If \code{pba} is not provided, a data frame object can
+#' be specified. The optional argument is provided ofr users desiring finer 
+#' control of the plots.
+#' @param density Logical; if true, plots smoothed density. If false, plots
+#' histogram.
+#' @param parameters A character vector specifying which bias parameters to
+#' include in the plots. Expected values are `p1' and `p0'.
+#' @param title A character vector of length one specifying the plot's title.
+#' @param sclaes Character string passed to ggplot. This parameter controls
+#' whether the x and y axes are free or fixed. Acceptable values are "free",
+#' "fixed", "free_x", or "free_y"
+#' @param L2 A character vector of length one specifying which bias type to plot.
+#' The expected value for this function is `confounding'.
+#' 
+#' @return The \code{plotBiasConfoundingProportions} function returns density plots or histograms of the
+#' distribution of confounding proportion bias parameters for a \code{pba} object. 
+#' This function allows finer control of plots than the \code{plotBias} function.
+#' 
+#' @export 
+#' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
 # Confounding proportions
 pbaPlotConfoundingProportions <- function(pba=NULL, data=NULL,
 		parameters=c('p1', 'p0'), density=T, title='Confounding (proportions)', 
@@ -1468,6 +1543,31 @@ pbaPlotConfoundingProportions <- function(pba=NULL, data=NULL,
 }
 
 
+
+
+#' Plot density distribution of confounding risk bias parameters of a pba object
+#' 
+#' @param pba An object of class \code{pba}.
+#' @param data (optional) If \code{pba} is not provided, a data frame object can
+#' be specified. The optional argument is provided ofr users desiring finer 
+#' control of the plots.
+#' @param density Logical; if true, plots smoothed density. If false, plots
+#' histogram.
+#' @param parameters A character vector specifying which bias parameters to
+#' include in the plots. Expected values are `rr' and `rd'.
+#' @param title A character vector of length one specifying the plot's title.
+#' @param sclaes Character string passed to ggplot. This parameter controls
+#' whether the x and y axes are free or fixed. Acceptable values are "free",
+#' "fixed", "free_x", or "free_y"
+#' @param L2 A character vector of length one specifying which bias type to plot.
+#' The expected value for this function is `confounding'.
+#' 
+#' @return The \code{plotBiasConfoundingRisks} function returns density plots or histograms of the
+#' distribution of confounding relative risk or risk difference bias parameters for a \code{pba} object. 
+#' This function allows finer control of plots than the \code{plotBias} function.
+#' 
+#' @export 
+#' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
 # Confounding risks
 pbaPlotConfoundingRisks <- function(pba=NULL, data=NULL,
 		parameters=c('rr', 'rd'), density=T, title='Confounding (relative risks)',
@@ -1510,32 +1610,8 @@ pbaPlotConfoundingRisks <- function(pba=NULL, data=NULL,
 
 
 
-#' Plot density distribution of estimates after adjusting for bias
-#' 
-#' @param pba A pba object.
-#' @param data ?
-#' @param exp Logical; if true, estimates are exponentiated. 
-#' @param density Logical; if true, plots smoothed density. If false, plots
-#' histogram.
-#' @param sclaes Character string passed to ggplot. This parameter controls
-#' whether the x and y axes are free or fixed. Acceptable values are "free",
-#' "fixed", "free_x", or "free_y"
-#' @param types A character vector specifying the types of biases to plot. If
-#' NULL, the function will plot all defined biases. Acceptable values are
-#' "misclassification", "selection", and "confounding".
-#' @param print Logical; if true, function prints the plots. If false, the
-#' function only returns the plot objects in a list.
-#' 
-#' @return The plotBias function returns density plots or histograms of the
-#' distribution of bias parameters for a pba object. If print = TRUE, the
-#' function attempts to organize all plots into a single window. Individual 
-#' plots may be accessed from the returned list. plotBias internally calls
-#' pbaPlotMisclassification, pbaPlotSelection, pbaPlotConfoundingProportions,
-#' and pbaPlotConfoundingRisks.
-#' 
-#' @export 
-#' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
 
+#' @export
 # Plot distribution of simulated estimates
 plotEstimates <- function(pba=NULL, data=NULL, density=T, exp=F, adjust=1, 
 		binwidth=NULL, scales='free', variables=NULL, print = T)
@@ -1613,7 +1689,7 @@ plotEstimates <- function(pba=NULL, data=NULL, density=T, exp=F, adjust=1,
 }
 
 
-
+# Internal
 # Labeller
 pbaLabeller <- function(x, y)
 {
@@ -1637,6 +1713,29 @@ pbaLabeller <- function(x, y)
 
 
 
+#' Plot density distribution of selection bias parameters of a pba object
+#' 
+#' @param pba An object of class \code{pba}.
+#' @param data (optional) If \code{pba} is not provided, a data frame object can
+#' be specified. The optional argument is provided ofr users desiring finer 
+#' control of the plots.
+#' @param density Logical; if true, plots smoothed density. If false, plots
+#' histogram.
+#' @param parameters A character vector specifying which bias parameters to
+#' include in the plots. Expected values are `s.a1', `s.b1', `s.a0', and `s.b0'.
+#' @param title A character vector of length one specifying the plot's title.
+#' @param sclaes Character string passed to ggplot. This parameter controls
+#' whether the x and y axes are free or fixed. Acceptable values are "free",
+#' "fixed", "free_x", or "free_y"
+#' @param L2 A character vector of length one specifying which bias type to plot.
+#' The expected value for this function is `selection'.
+#' 
+#' @return The \code{plotBiasSelection} function returns density plots or histograms of the
+#' distribution of selection bias parameters for a \code{pba} object. 
+#' This function allows finer control of plots than the \code{plotBias} function.
+#' 
+#' @export 
+#' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
 # Selection
 pbaPlotSelection <- function(pba=NULL, data=NULL, density=T,
 		parameters=c('s.a1', 's.a0', 's.b1', 's.b0'), title='Selection', 
@@ -1754,7 +1853,7 @@ pbaVariableMisclassification <- function(misclassification)
 }
 
 
-
+# Internal
 # Function to make sure selection bias is well formed
 pbaVariableSelection <- function(selection)
 {
@@ -1810,6 +1909,7 @@ pbaVariableSelection <- function(selection)
 
 
 
+# Internal
 # Function to make sure misclassification is well formed
 pbaVariableConfounding <- function(confounding)
 {
@@ -1848,10 +1948,33 @@ pbaVariableConfounding <- function(confounding)
 
 
 
-
-#' @aliases plotEstimates
+#' Plot density distribution of estimates after adjusting for bias
+#' 
+#' @param pba A pba object.
+#' @param data (optional) If \code{pba} is not provided, an appropriate data frame
+#' may be provided here instead. This option is intended for users requiring 
+#' finer control.
+#' #' @param density Logical; if true, plots smoothed density. If false, plots
+#' histogram.
+#' @param exp Logical; if true, estimates are exponentiated. 
+#' @param adjust Passed to \code{density()}
+#' @param binwidth Passed to \code{histogram()}
+#' @param sclaes Character string passed to ggplot. This parameter controls
+#' whether the x and y axes are free or fixed. Acceptable values are "free",
+#' "fixed", "free_x", or "free_y"
+#' @param Variables A character vector specifying the variables to plot. If
+#' NULL, the function will plot all variables. 
+#' @param print Logical; if true, function prints the plots. If false, the
+#' function only returns the plot objects in a list.
+#' 
+#' @return The plotEstimates function returns density plots or histograms of the
+#' coefficient estimates.
+#' 
 #' @S3method plot pba
-
+#' @rdname plot.pba
+#' @aliases plotEstimates
+#' @export 
+#' @author Jeremy Thoms Hetzel \email{jthetzel@@gmail.com}
 # Plot method for pba objects. Passes object to plotEstimates
 plot.pba <- function(pba=NULL, data=NULL, density=T, exp=F, adjust=1, 
 		binwidth=NULL, scales='free', variables=NULL, print = T)
@@ -1863,6 +1986,14 @@ plot.pba <- function(pba=NULL, data=NULL, density=T, exp=F, adjust=1,
 
 
 
+#' Correlation method for objects of class \code{pba}
+#' 
+#' @param An object of class \code{pba}
+#' @param ... Further arguments to pass to \code{cor()}
+#' 
+#' @return Returns a list of correlation matrices of the defined biases.
+#' 
+#' @S3method cor pba
 # Cor method for pba objects
 cor.pba <- function(pba = NULL, ...)
 {
@@ -1894,7 +2025,7 @@ cor.pba <- function(pba = NULL, ...)
 
 
 
-
+# Internal
 # Sample misclassification parameters
 pbaSampleMisclassification <- function(misclassification, iter)
 {	
@@ -1925,7 +2056,8 @@ pbaSampleMisclassification <- function(misclassification, iter)
 
 
 
-
+# Internal, for now
+# Function to create corrrelated samples
 pbaCorrelate <- function (n, pbaDistrs, sigma)
 {
 	# Extract distributions
@@ -1956,7 +2088,7 @@ pbaCorrelate <- function (n, pbaDistrs, sigma)
 
 
 
-
+# Internal
 # Sample confounding paramaters
 pbaSampleConfounding <- function(confounding, iter)
 {
