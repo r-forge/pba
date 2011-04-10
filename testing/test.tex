@@ -1,0 +1,43 @@
+%
+%\VignetteIndexEntry{Probabilistic Bias Analysis Examples}
+%\VignetteDepends{pba}
+%\VignetteKeywords{}
+%\VignettePackage{pba}
+ 
+\documentclass[a4paper]{article}
+\usepackage{times}
+\usepackage{hyperref}
+\usepackage[authoryear,round]{natbib}
+\usepackage{times}
+\usepackage{comment}
+\usepackage{graphicx}
+\usepackage{subfigure}
+
+% \VignetteIndexEntry{pba Example}
+
+\begin{document}
+
+\newcommand{\Rfunction}[1]{{\texttt{#1}}}
+\newcommand{\Rcode}[1]{{\texttt{#1}}}
+\newcommand{\Robject}[1]{{\texttt{#1}}}
+\newcommand{\Rpackage}[1]{{\textsf{#1}}}
+\newcommand{\Rclass}[1]{{\textit{#1}}}
+
+
+\title{pba: Probabilistic Bias Analysis}
+\author{Jeremy Thoms Hetzel}
+
+\maketitle
+
+\section{Introduction}
+\deqn{
+    fX(x\mid\theta) = C(\Theta) \times
+      \begin{array}{}|
+        \alpha \left(\frac{x - \alpha}{b - \alpha} \right)^{m - 1}, & \text{for} \alpha \leq x < b \\
+        (1 - \alpha) \left(\frac{x - b}{c - b} \right) + \alpha, & \text(for) b \leq x < c \\
+        \left(\frac{d - x}{d - c} \right)^{n-1}, & \text{for} c \leq x < \alpha
+       \end{array}
+  }
+\clearpage
+\end{document}
+  

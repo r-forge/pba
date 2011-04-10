@@ -1,0 +1,99 @@
+%
+%\VignetteIndexEntry{Trapezoid Distribution Examples}
+%\VignetteDepends{trapezoid}
+%\VignetteKeywords{}
+%\VignettePackage{trapezoid}
+ 
+\documentclass[a4paper]{article}
+\usepackage{times}
+\usepackage{hyperref}
+\usepackage[authoryear,round]{natbib}
+\usepackage{times}
+\usepackage{comment}
+\usepackage{graphicx}
+\usepackage{subfigure}
+
+% \VignetteIndexEntry{trapezoid Example}
+
+\begin{document}
+
+<<foo,include=FALSE,echo=FALSE>>=
+options(keep.source = TRUE, width = 60)
+foo <- packageDescription("trapezoid")
+@
+
+\newcommand{\Rfunction}[1]{{\texttt{#1}}}
+\newcommand{\Rcode}[1]{{\texttt{#1}}}
+\newcommand{\Robject}[1]{{\texttt{#1}}}
+\newcommand{\Rpackage}[1]{{\textsf{#1}}}
+\newcommand{\Rclass}[1]{{\textit{#1}}}
+
+
+\title{trapezoid: Generalized Trapezoidal Distribution}
+\author{Jeremy Thoms Hetzel}
+
+\maketitle
+
+\section{Introduction}
+
+
+
+
+
+<<Figure3A, fig = true>>=
+require(trapezoid)
+require(ggplot2)
+x <- seq(from = 0, to = 1, by = 0.01)	
+y <- dtrapezoid(x, min = 0, mode1 = 0.15, mode2 = 0.8, max = 1,
+		n1 = 1.25, n3 = 1.45, alpha = 1)
+ggplot(data = data.frame(x, y), aes(x = x, y = y)) + geom_point() + 
+		geom_line() + theme_bw()
+@
+
+
+
+<<Figure3B, fig = true>>=
+x <- seq(from = 0, to = 1, by = 0.01)	
+y <- dtrapezoid(x, min = 0, mode1 = 0.14, mode2 = 0.69, max = 1,
+		n1 = 1.35, n3 = 1.75, alpha = 1.04)
+ggplot(data = data.frame(x, y), aes(x = x, y = y)) + geom_point() + 
+		geom_line() + theme_bw()
+@
+
+<<Figure4, fig = true>>=
+x <- seq(from = 0, to = 1, by = 0.01)	
+
+arguments <- list()
+arguments[['A']] <- list(x = x, n1 = 2, n3 = 2, alpha = 0.8)
+arguments[['B']] <- list(x = x, n1 = 1.5, n3 = 1.5, alpha = 1)
+arguments[['C']] <- list(x = x, n1 = 2.5, n3 = 2.5, alpha = 1.5)
+arguments[['D']] <- list(x = x, n1 = 1.5, n3 = 2.5, alpha = 0.5)
+arguments[['E']] <- list(x = x, n1 = 2.5, n3 = 1.5, alpha = 1)
+arguments[['F']] <- list(x = x, n1 = 0.5, n3 = 0.5, alpha = 1.5)
+arguments[['G']] <- list(x = x, n1 = 1.5, n3 = 0.5, alpha = 0.5)
+arguments[['H']] <- list(x = x, n1 = 2.5, n3 = 0.5, alpha = 1)
+arguments[['I']] <- list(x = x, n1 = 0.5, n3 = 1.5, alpha = 1.5)
+arguments[['J']] <- list(x = x, n1 = 0.5, n3 = 2.5, alpha = 0.5)
+
+
+plot.data <- ldply(arguments, function(z)
+		{
+			x <- z$x
+			y <- dtrapezoid(x = z$x, min = 0, mode1 = 0.2, mode2 = 0.8,
+					max = 1, n1 = z$n1, n3 = z$n3, alpha = z$alpha)
+			args <- paste("n1 = ", z$n1, ", n3 = ", z$n3, ", alpha = ", z$alpha, 
+				sep="", collapse="")
+			out <- data.frame(x, y, args)
+		})
+
+plot.data$label <- paste(plot.data$.id, ": ", plot.data$args, sep="")
+
+ggplot(data = plot.data, aes(x = x, y = y)) + 
+		geom_line() + theme_bw() + 
+		facet_wrap(~label, ncol = 2, scales = "free_y") 
+@
+
+
+
+\clearpage
+\end{document}
