@@ -7,9 +7,21 @@ pbaDistr(distr, ...)
 pbaDistr(distr, ...)
 pbaDistr(distr, ...)
 pbaDistr(distr, ...)
+pbaDistr(distr, ...)
+pbaDistr(distr, ...)
+pbaDistr(distr, ...)
 }
 \description{Function to define distributions for bias parameters.}
 \value{An object of class \code{pba.distr}.\code{pbaDistr}: An object of class \code{pba.distr}.
+
+
+\code{pbaDistr}: An object of class \code{pba.distr}.
+
+
+\code{pbaDistr}: An object of class \code{pba.distr}.
+
+
+\code{pbaDistr}: An object of class \code{pba.distr}.
 
 
 \code{pbaDistr}: An object of class \code{pba.distr}.
@@ -38,6 +50,12 @@ For example `norm' for the normal distribution.}
 For example `norm' for the normal distribution.}
 \item{...}{Additional arguments to be passed to the \code{distr} function.}
 }
+
+\alias{pbaDistr}
+
+\alias{pbaDistr}
+
+\alias{pbaDistr}
 
 \alias{pbaDistr}
 

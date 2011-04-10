@@ -15,11 +15,32 @@ pbaPlotSelection(pba, data, density=T, parameters=c("s.a1\", \"s.a0\", \"s.b1\",
     \"s.b0"), title="Selection", scales="free", L2="selection")
 pbaPlotSelection(pba, data, density=T, parameters=c("s.a1\", \"s.a0\", \"s.b1\",
     \"s.b0"), title="Selection", scales="free", L2="selection")
+pbaPlotSelection(pba, data, density=T, parameters=c("s.a1\", \"s.a0\", \"s.b1\",
+    \"s.b0"), title="Selection", scales="free", L2="selection")
+pbaPlotSelection(pba, data, density=T, parameters=c("s.a1\", \"s.a0\", \"s.b1\",
+    \"s.b0"), title="Selection", scales="free", L2="selection")
+pbaPlotSelection(pba, data, density=T, parameters=c("s.a1\", \"s.a0\", \"s.b1\",
+    \"s.b0"), title="Selection", scales="free", L2="selection")
 }
 \description{Plot density distribution of selection bias parameters of a pba object}
 \value{The \code{plotBiasSelection} function returns density plots or histograms of the
 distribution of selection bias parameters for a \code{pba} object. 
 This function allows finer control of plots than the \code{plotBias} function.\code{pbaPlotSelection}: The \code{plotBiasSelection} function returns density plots or histograms of the
+distribution of selection bias parameters for a \code{pba} object. 
+This function allows finer control of plots than the \code{plotBias} function.
+
+
+\code{pbaPlotSelection}: The \code{plotBiasSelection} function returns density plots or histograms of the
+distribution of selection bias parameters for a \code{pba} object. 
+This function allows finer control of plots than the \code{plotBias} function.
+
+
+\code{pbaPlotSelection}: The \code{plotBiasSelection} function returns density plots or histograms of the
+distribution of selection bias parameters for a \code{pba} object. 
+This function allows finer control of plots than the \code{plotBias} function.
+
+
+\code{pbaPlotSelection}: The \code{plotBiasSelection} function returns density plots or histograms of the
 distribution of selection bias parameters for a \code{pba} object. 
 This function allows finer control of plots than the \code{plotBias} function.
 
@@ -65,6 +86,12 @@ whether the x and y axes are free or fixed. Acceptable values are "free",
 "fixed", "free_x", or "free_y"}
 \item{L2}{A character vector of length one specifying which bias type to plot.
 The expected value for this function is `selection'.}}
+\alias{pbaPlotSelection}
+
+\alias{pbaPlotSelection}
+
+\alias{pbaPlotSelection}
+
 \alias{pbaPlotSelection}
 
 \alias{pbaPlotSelection}

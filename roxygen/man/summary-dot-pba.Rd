@@ -7,6 +7,9 @@ summary.pba(pba, transformation, scale="additive", alpha=0.05, ...)
 summary.pba(pba, transformation, scale="additive", alpha=0.05, ...)
 summary.pba(pba, transformation, scale="additive", alpha=0.05, ...)
 summary.pba(pba, transformation, scale="additive", alpha=0.05, ...)
+summary.pba(pba, transformation, scale="additive", alpha=0.05, ...)
+summary.pba(pba, transformation, scale="additive", alpha=0.05, ...)
+summary.pba(pba, transformation, scale="additive", alpha=0.05, ...)
 }
 \author{Jeremy Thoms Hetzel \email{jthetzel@gmail.com}}
 \arguments{\item{pba}{A \code{pba} pbject.}
@@ -23,6 +26,12 @@ calculated after any transformations.}
 \item{alpha}{Alpha level used for determining confidence limits.}
 \item{...}{(optional) Additional arguments to pass to the 
 \code{transformation} function, if specified.}}
+\alias{summary.pba}
+
+\alias{summary.pba}
+
+\alias{summary.pba}
+
 \alias{summary.pba}
 
 \alias{summary.pba}

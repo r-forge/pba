@@ -2155,3 +2155,4 @@ cor <- function (x, y = NULL, use = "everything", method = c("pearson",
 	UseMethod("cor")
 }
 
+

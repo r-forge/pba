@@ -13,10 +13,28 @@ plot.pba(pba, data, density=T, exp=F, adjust=1, binwidth, scales="free",
     variables, print=T)
 plot.pba(pba, data, density=T, exp=F, adjust=1, binwidth, scales="free",
     variables, print=T)
+plot.pba(pba, data, density=T, exp=F, adjust=1, binwidth, scales="free",
+    variables, print=T)
+plot.pba(pba, data, density=T, exp=F, adjust=1, binwidth, scales="free",
+    variables, print=T)
+plot.pba(pba, data, density=T, exp=F, adjust=1, binwidth, scales="free",
+    variables, print=T)
 }
 \description{Plot density distribution of estimates after adjusting for bias}
 \value{The plotEstimates function returns density plots or histograms of the
 coefficient estimates.\code{plot.pba}: The plotEstimates function returns density plots or histograms of the
+coefficient estimates.
+
+
+\code{plot.pba}: The plotEstimates function returns density plots or histograms of the
+coefficient estimates.
+
+
+\code{plot.pba}: The plotEstimates function returns density plots or histograms of the
+coefficient estimates.
+
+
+\code{plot.pba}: The plotEstimates function returns density plots or histograms of the
 coefficient estimates.
 
 
@@ -65,6 +83,12 @@ function only returns the plot objects in a list.}}
 
 \alias{plot.pba}
 \alias{plotEstimates}
+
+\alias{plot.pba}
+
+\alias{plot.pba}
+
+\alias{plot.pba}
 
 \alias{plot.pba}
 

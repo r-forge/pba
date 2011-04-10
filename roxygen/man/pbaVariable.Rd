@@ -7,9 +7,21 @@ pbaVariable(variable, misclassification, selection, confounding)
 pbaVariable(variable, misclassification, selection, confounding)
 pbaVariable(variable, misclassification, selection, confounding)
 pbaVariable(variable, misclassification, selection, confounding)
+pbaVariable(variable, misclassification, selection, confounding)
+pbaVariable(variable, misclassification, selection, confounding)
+pbaVariable(variable, misclassification, selection, confounding)
 }
 \description{Define bias parameters}
 \value{The pba function returns an object of class \code{pba.variables}.\code{pbaVariable}: The pba function returns an object of class \code{pba.variables}.
+
+
+\code{pbaVariable}: The pba function returns an object of class \code{pba.variables}.
+
+
+\code{pbaVariable}: The pba function returns an object of class \code{pba.variables}.
+
+
+\code{pbaVariable}: The pba function returns an object of class \code{pba.variables}.
 
 
 \code{pbaVariable}: The pba function returns an object of class \code{pba.variables}.
@@ -68,6 +80,12 @@ be defined. If both are defined, rr.distr is used instead of or.distr.}
 \item{or.distr}{(optional) A pba.distr object defining the odds ratio 
 association between the confounder and the outcome. rr.distr or or.distr 
 must be defined. If both are defined, rr.distr is used instead of or.distr.}}}
+\alias{pbaVariable}
+
+\alias{pbaVariable}
+
+\alias{pbaVariable}
+
 \alias{pbaVariable}
 
 \alias{pbaVariable}

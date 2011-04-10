@@ -15,11 +15,32 @@ pbaPlotConfoundingRisks(pba, data, parameters=c("rr\", \"rd"), density=T, title=
     (relative risks)", scales="free", L2="confounding")
 pbaPlotConfoundingRisks(pba, data, parameters=c("rr\", \"rd"), density=T, title="Confounding
     (relative risks)", scales="free", L2="confounding")
+pbaPlotConfoundingRisks(pba, data, parameters=c("rr\", \"rd"), density=T, title="Confounding
+    (relative risks)", scales="free", L2="confounding")
+pbaPlotConfoundingRisks(pba, data, parameters=c("rr\", \"rd"), density=T, title="Confounding
+    (relative risks)", scales="free", L2="confounding")
+pbaPlotConfoundingRisks(pba, data, parameters=c("rr\", \"rd"), density=T, title="Confounding
+    (relative risks)", scales="free", L2="confounding")
 }
 \description{Plot density distribution of confounding risk bias parameters of a pba object}
 \value{The \code{plotBiasConfoundingRisks} function returns density plots or histograms of the
 distribution of confounding relative risk or risk difference bias parameters for a \code{pba} object. 
 This function allows finer control of plots than the \code{plotBias} function.\code{pbaPlotConfoundingRisks}: The \code{plotBiasConfoundingRisks} function returns density plots or histograms of the
+distribution of confounding relative risk or risk difference bias parameters for a \code{pba} object. 
+This function allows finer control of plots than the \code{plotBias} function.
+
+
+\code{pbaPlotConfoundingRisks}: The \code{plotBiasConfoundingRisks} function returns density plots or histograms of the
+distribution of confounding relative risk or risk difference bias parameters for a \code{pba} object. 
+This function allows finer control of plots than the \code{plotBias} function.
+
+
+\code{pbaPlotConfoundingRisks}: The \code{plotBiasConfoundingRisks} function returns density plots or histograms of the
+distribution of confounding relative risk or risk difference bias parameters for a \code{pba} object. 
+This function allows finer control of plots than the \code{plotBias} function.
+
+
+\code{pbaPlotConfoundingRisks}: The \code{plotBiasConfoundingRisks} function returns density plots or histograms of the
 distribution of confounding relative risk or risk difference bias parameters for a \code{pba} object. 
 This function allows finer control of plots than the \code{plotBias} function.
 
@@ -65,6 +86,12 @@ whether the x and y axes are free or fixed. Acceptable values are "free",
 "fixed", "free_x", or "free_y"}
 \item{L2}{A character vector of length one specifying which bias type to plot.
 The expected value for this function is `confounding'.}}
+\alias{pbaPlotConfoundingRisks}
+
+\alias{pbaPlotConfoundingRisks}
+
+\alias{pbaPlotConfoundingRisks}
+
 \alias{pbaPlotConfoundingRisks}
 
 \alias{pbaPlotConfoundingRisks}

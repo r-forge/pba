@@ -15,11 +15,32 @@ pbaPlotConfoundingProportions(pba, data, parameters=c("p1\", \"p0"), density=T, 
     (proportions)", scales="free", L2="confounding")
 pbaPlotConfoundingProportions(pba, data, parameters=c("p1\", \"p0"), density=T, title="Confounding
     (proportions)", scales="free", L2="confounding")
+pbaPlotConfoundingProportions(pba, data, parameters=c("p1\", \"p0"), density=T, title="Confounding
+    (proportions)", scales="free", L2="confounding")
+pbaPlotConfoundingProportions(pba, data, parameters=c("p1\", \"p0"), density=T, title="Confounding
+    (proportions)", scales="free", L2="confounding")
+pbaPlotConfoundingProportions(pba, data, parameters=c("p1\", \"p0"), density=T, title="Confounding
+    (proportions)", scales="free", L2="confounding")
 }
 \description{Plot density distribution of confounding proportion bias parameters of a pba object}
 \value{The \code{plotBiasConfoundingProportions} function returns density plots or histograms of the
 distribution of confounding proportion bias parameters for a \code{pba} object. 
 This function allows finer control of plots than the \code{plotBias} function.\code{pbaPlotConfoundingProportions}: The \code{plotBiasConfoundingProportions} function returns density plots or histograms of the
+distribution of confounding proportion bias parameters for a \code{pba} object. 
+This function allows finer control of plots than the \code{plotBias} function.
+
+
+\code{pbaPlotConfoundingProportions}: The \code{plotBiasConfoundingProportions} function returns density plots or histograms of the
+distribution of confounding proportion bias parameters for a \code{pba} object. 
+This function allows finer control of plots than the \code{plotBias} function.
+
+
+\code{pbaPlotConfoundingProportions}: The \code{plotBiasConfoundingProportions} function returns density plots or histograms of the
+distribution of confounding proportion bias parameters for a \code{pba} object. 
+This function allows finer control of plots than the \code{plotBias} function.
+
+
+\code{pbaPlotConfoundingProportions}: The \code{plotBiasConfoundingProportions} function returns density plots or histograms of the
 distribution of confounding proportion bias parameters for a \code{pba} object. 
 This function allows finer control of plots than the \code{plotBias} function.
 
@@ -65,6 +86,12 @@ whether the x and y axes are free or fixed. Acceptable values are "free",
 "fixed", "free_x", or "free_y"}
 \item{L2}{A character vector of length one specifying which bias type to plot.
 The expected value for this function is `confounding'.}}
+\alias{pbaPlotConfoundingProportions}
+
+\alias{pbaPlotConfoundingProportions}
+
+\alias{pbaPlotConfoundingProportions}
+
 \alias{pbaPlotConfoundingProportions}
 
 \alias{pbaPlotConfoundingProportions}

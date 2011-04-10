@@ -7,6 +7,9 @@ cor.pba(pba, ...)
 cor.pba(pba, ...)
 cor.pba(pba, ...)
 cor.pba(pba, ...)
+cor.pba(pba, ...)
+cor.pba(pba, ...)
+cor.pba(pba, ...)
 }
 \description{Correlation method for objects of class \code{pba}}
 \value{Returns a list of correlation matrices of the defined biases.\code{cor.pba}: Returns a list of correlation matrices of the defined biases.
@@ -27,9 +30,24 @@ cor.pba(pba, ...)
 \code{cor.pba}: Returns a list of correlation matrices of the defined biases.
 
 
+\code{cor.pba}: Returns a list of correlation matrices of the defined biases.
+
+
+\code{cor.pba}: Returns a list of correlation matrices of the defined biases.
+
+
+\code{cor.pba}: Returns a list of correlation matrices of the defined biases.
+
+
 }
 \arguments{\item{An}{object of class \code{pba}}
 \item{...}{Further arguments to pass to \code{cor()}}}
+\alias{cor.pba}
+
+\alias{cor.pba}
+
+\alias{cor.pba}
+
 \alias{cor.pba}
 
 \alias{cor.pba}

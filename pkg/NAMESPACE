@@ -8,9 +8,7 @@ export(expit, logit, pba, pbaDistr, pbaVariable,
 import(plyr)
 import(ggplot2)
 import(reshape)
-import(roxygen)
-import(copula)
-#import(fUtilities) # cor only
+
 
 S3method(print, pba)
 S3method(plot, pba)
